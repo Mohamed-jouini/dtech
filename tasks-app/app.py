@@ -17,7 +17,7 @@ BASE_PATH     = os.environ.get('BASE_PATH', '')
 NEXTCLOUD_URL = os.environ.get('NEXTCLOUD_URL', 'http://cabinet.mwj-lawyers.com')
 NC_ADMIN_USER = os.environ.get('NC_ADMIN_USER', 'admin')  # Admin principal toujours autorisé
 # Administrateurs par défaut (voient toutes les tâches) ; surchargeable via la variable DEFAULT_ADMINS (séparés par des virgules)
-DEFAULT_ADMINS = [u.strip() for u in os.environ.get('DEFAULT_ADMINS', 'wassef.jlaeil,aziza.kileni').split(',') if u.strip()]
+DEFAULT_ADMINS = [u.strip() for u in os.environ.get('DEFAULT_ADMINS', 'wassef.jlaiel,aziza.kileni').split(',') if u.strip()]
 NC_ADMIN_PASS = os.environ.get('NC_ADMIN_PASS', '')
 UPLOAD_DIR    = os.environ.get('UPLOAD_DIR', '/data/uploads')
 ALLOWED_EXT   = {'pdf','doc','docx','jpg','jpeg','png','txt','xls','xlsx'}
@@ -367,10 +367,8 @@ def index():
     mes_taches    = appliquer_filtres(mes_taches)
     taches_creees = appliquer_filtres(taches_creees)
     if toutes is not None:
-        # Administrateurs : toutes les autres tâches (celles qui ne sont ni à eux ni créées par eux)
-        toutes = appliquer_filtres([t for t in toutes
-                                    if user['uid'] not in t['assigne_a'].split(',')
-                                    and t['cree_par'] != user['uid']])
+        # Administrateurs : TOUTES les tâches de tous les utilisateurs (comme ncadmin)
+        toutes = appliquer_filtres(list(toutes))
 
     return render_template('index.html', user=user, mes_taches=mes_taches,
                            taches_creees=taches_creees, toutes=toutes,

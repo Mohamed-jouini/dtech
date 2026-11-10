@@ -165,15 +165,15 @@ timer = setInterval(tick, 1000);
 </div>
 
 {% if toutes is not none %}
-<!-- ADMINISTRATEURS : TOUTES LES AUTRES TÂCHES -->
+<!-- ADMINISTRATEURS : TOUTES LES TÂCHES DE TOUS LES UTILISATEURS -->
 <div style="margin-top:22px">
   <div class="col-header" style="border-top-color:#B5862B">
-    <h3>👑 مهام باقي المستخدمين</h3>
+    <h3>👑 مهام باقي المستخدمين (جميع المهام)</h3>
     <span style="background:#B5862B;color:white;border-radius:10px;padding:1px 10px;font-size:11px;font-weight:700">{{ toutes|length }}</span>
   </div>
 
   {% if not toutes %}
-  <div class="empty-sm">لا توجد مهام أخرى</div>
+  <div class="empty-sm">لا توجد مهام</div>
   {% endif %}
 
   {% for t in toutes %}
