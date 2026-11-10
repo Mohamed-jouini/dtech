@@ -203,6 +203,49 @@ def api_clients():
     except Exception:
         return jsonify([])
 
+def _clean(v):
+    return str(v).replace('‏', '').replace('‎', '').replace('​', '').strip() if v else ''
+
+
+def load_clients_info():
+    """Lit la base fiche-client : ({id: folder_url}, {id: mustafid}, {raqm_qadiya: mustafid})."""
+    folders, by_id, by_adad = {}, {}, {}
+    if CLIENTS_DB_PATH and os.path.exists(CLIENTS_DB_PATH):
+        try:
+            cconn = sqlite3.connect(CLIENTS_DB_PATH)
+            cconn.row_factory = sqlite3.Row
+            for cr in cconn.execute("SELECT id, data FROM clients").fetchall():
+                cd = json.loads(cr['data']) if cr['data'] else {}
+                if cd.get('folder_url'):
+                    folders[cr['id']] = cd['folder_url']
+                must = _clean(cd.get('client_mustafid', ''))
+                if must:
+                    by_id[cr['id']] = must
+                    adad = _clean(cd.get('raqm_qadiya', ''))
+                    if adad:
+                        by_adad.setdefault(adad, must)
+            cconn.close()
+        except Exception:
+            pass
+    return folders, by_id, by_adad
+
+
+def fill_mustafid(d, by_id, by_adad):
+    """Complete d['mustafid'] depuis le ملف القضية quand la جلسة n'en a pas."""
+    if (d.get('mustafid') or '').strip():
+        return
+    must = ''
+    try:
+        if d.get('client_id'):
+            must = by_id.get(int(d['client_id']), '')
+    except (TypeError, ValueError):
+        pass
+    if not must:
+        must = by_adad.get(_clean(d.get('adad_qadiya', '')), '')
+    if must:
+        d['mustafid'] = must
+
+
 @app.route('/api/jalsat', methods=['GET'])
 def api_list():
     conn = get_db()
@@ -212,19 +255,8 @@ def api_list():
     rows = conn.execute("SELECT * FROM jalsat ORDER BY jalsa ASC").fetchall()
     conn.close()
 
-    # Charger les folder_url des clients
-    client_folders = {}
-    if CLIENTS_DB_PATH and os.path.exists(CLIENTS_DB_PATH):
-        try:
-            cconn = sqlite3.connect(CLIENTS_DB_PATH)
-            cconn.row_factory = sqlite3.Row
-            for cr in cconn.execute("SELECT id, data FROM clients").fetchall():
-                cd = json.loads(cr['data']) if cr['data'] else {}
-                if cd.get('folder_url'):
-                    client_folders[cr['id']] = cd['folder_url']
-            cconn.close()
-        except Exception:
-            pass
+    # Charger les folder_url et المستفيد des clients (fiche-client)
+    client_folders, client_mustafid, mustafid_by_adad = load_clients_info()
 
     results = []
     for r in rows:
@@ -232,6 +264,8 @@ def api_list():
         # Ajouter folder_url si le client a un dossier Nextcloud
         if d.get('client_id') and int(d['client_id']) in client_folders:
             d['folder_url'] = client_folders[int(d['client_id'])]
+        # المستفيد : si vide dans la جلسة, reprendre celui du ملف القضية (par dossier lie, sinon par عدد القضية)
+        fill_mustafid(d, client_mustafid, mustafid_by_adad)
         if search:
             searchable = json.dumps(d, ensure_ascii=False).lower()
             if search.lower() not in searchable:
@@ -436,6 +470,11 @@ def akhir_ajal():
         ORDER BY j.tarikh_akhir_ajal ASC
     """).fetchall()
     conn.close()
+    # المستفيد : completer depuis le ملف القضية quand la جلسة n'en a pas
+    _f, by_id, by_adad = load_clients_info()
+    rows = [dict(r) for r in rows]
+    for d in rows:
+        fill_mustafid(d, by_id, by_adad)
     return render_template('akhir_ajal.html', rows=rows)
 
 if __name__ == '__main__':

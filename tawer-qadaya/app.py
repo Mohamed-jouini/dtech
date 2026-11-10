@@ -227,7 +227,12 @@ def get_mustafid_map():
 
 def _with_mustafid(rows, mmap):
     for r in rows:
-        r['mustafid'] = mmap.get(_clean(r.get('adad', '')), '')
+        adad = _clean(r.get('adad', ''))
+        must = mmap.get(adad, '')
+        if not must and len(adad) >= 3:
+            # meme tolerance que lookup_client_by_adad : le عدد peut etre contenu dans le رقم القضية
+            must = next((v for k, v in mmap.items() if adad in k), '')
+        r['mustafid'] = must
     return rows
 
 def get_all_clients():

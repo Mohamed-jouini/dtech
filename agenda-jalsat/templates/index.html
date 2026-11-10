@@ -297,6 +297,19 @@ input[type="checkbox"],input[type="radio"]{accent-color:var(--av-blue)}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 img,video,canvas,iframe,svg{max-width:100%}
 
+/* ---- Barres du haut TOUJOURS fixes, meme dans un cadre bas (iframe Nextcloud ~600px) ----
+   L'ancienne regle "max-height:620px => position:static" les faisait defiler avec la page.
+   On garde le mode fixe et on compacte les barres quand la hauteur est faible. */
+.entete-fixe{position:sticky!important;max-height:45vh;overflow-y:auto;overflow-x:hidden}
+@media (max-height:760px){
+  html body .entete-fixe .header,html body .entete-fixe .app-header{padding-top:6px!important;padding-bottom:6px!important;min-height:0}
+  html body .entete-fixe .header h1,html body .entete-fixe .app-header h1{font-size:17px}
+  html body .entete-fixe .toolbar,html body .entete-fixe .global-toolbar,html body .entete-fixe .filters{padding-top:5px!important;padding-bottom:5px!important}
+  html body .entete-fixe .year-nav{padding-top:3px!important;padding-bottom:3px!important}
+  html body .entete-fixe .year-nav h2,html body .entete-fixe .year-nav .year-label{font-size:16px}
+  html body .entete-fixe .btn-new,html body .entete-fixe .btn-print{padding-top:6px;padding-bottom:6px}
+}
+
 @media (max-width:820px){
   body{overflow-x:hidden;-webkit-tap-highlight-color:transparent}
   body[style*="padding"],body[style*="margin"]{padding-left:10px!important;padding-right:10px!important}

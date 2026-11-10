@@ -163,4 +163,43 @@ timer = setInterval(tick, 1000);
   </div>
 
 </div>
+
+{% if toutes is not none %}
+<!-- ADMINISTRATEURS : TOUTES LES AUTRES TÂCHES -->
+<div style="margin-top:22px">
+  <div class="col-header" style="border-top-color:#B5862B">
+    <h3>👑 مهام باقي المستخدمين</h3>
+    <span style="background:#B5862B;color:white;border-radius:10px;padding:1px 10px;font-size:11px;font-weight:700">{{ toutes|length }}</span>
+  </div>
+
+  {% if not toutes %}
+  <div class="empty-sm">لا توجد مهام أخرى</div>
+  {% endif %}
+
+  {% for t in toutes %}
+  {% set pr = PRIORITIES.get(t.priorite, {}) %}
+  {% set st = STATUTS.get(t.statut, {}) %}
+  {% set is_late = t.deadline and t.deadline < today and t.statut != 'terminee' %}
+  <div class="task-row {{ t.priorite }} {% if t.statut=='terminee' %}terminee{% endif %}">
+    <div class="task-icon">{{ pr.get('icon','📋') }}</div>
+    <div class="task-body">
+      <div class="task-titre">{{ t.titre }}</div>
+      <div class="task-sub">
+        <span class="tag-sm" style="background:{{ st.get('color','#8C867E') }}22;color:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span>
+        {% for u in t.assigne_a.split(',') %}<span>👤 {{ u.strip() }}</span>{% endfor %}
+        {% if t.deadline %}<span style="color:{% if is_late %}#C25B4A{% else %}var(--text2){% endif %}">📅 {{ t.deadline }}</span>{% endif %}
+        <span>من: {{ t.cree_par }}</span>
+      </div>
+    </div>
+    <div class="task-actions">
+      <a href="{{ BASE }}/tache/{{ t.id }}" class="btn btn-sm btn-info">👁️</a>
+      <a href="{{ BASE }}/tache/{{ t.id }}/edit" class="btn btn-info btn-sm">✏️</a>
+      <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/delete" onsubmit="return confirm('حذف؟')">
+        <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

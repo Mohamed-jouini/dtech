@@ -16,6 +16,8 @@ DB_PATH       = os.environ.get('DB_PATH', '/data/tasks.db')
 BASE_PATH     = os.environ.get('BASE_PATH', '')
 NEXTCLOUD_URL = os.environ.get('NEXTCLOUD_URL', 'http://cabinet.mwj-lawyers.com')
 NC_ADMIN_USER = os.environ.get('NC_ADMIN_USER', 'admin')  # Admin principal toujours autorisé
+# Administrateurs par défaut (voient toutes les tâches) ; surchargeable via la variable DEFAULT_ADMINS (séparés par des virgules)
+DEFAULT_ADMINS = [u.strip() for u in os.environ.get('DEFAULT_ADMINS', 'wassef.jlaeil,aziza.kileni').split(',') if u.strip()]
 NC_ADMIN_PASS = os.environ.get('NC_ADMIN_PASS', '')
 UPLOAD_DIR    = os.environ.get('UPLOAD_DIR', '/data/uploads')
 ALLOWED_EXT   = {'pdf','doc','docx','jpg','jpeg','png','txt','xls','xlsx'}
@@ -207,16 +209,20 @@ def get_nc_user():
     return None
 
 def get_admins():
-    """Récupérer la liste des admins depuis la DB."""
+    """Liste des admins : base de données + administrateurs par défaut (toujours présents)."""
+    admins = []
     try:
         conn = get_db()
         row = conn.execute("SELECT valeur FROM config WHERE cle='admins'").fetchone()
         conn.close()
         if row:
-            return [u.strip() for u in row['valeur'].split(',') if u.strip()]
+            admins = [u.strip() for u in row['valeur'].split(',') if u.strip()]
     except Exception:
         pass
-    return [NC_ADMIN_USER]
+    for u in reversed([NC_ADMIN_USER] + DEFAULT_ADMINS):
+        if u.lower() not in [a.lower() for a in admins]:
+            admins.insert(0, u)
+    return admins
 
 def get_nc_user_groups(uid):
     """Récupérer les groupes via Docker SDK (socket)."""
@@ -242,7 +248,7 @@ def is_admin(uid):
     """Admin si: admin principal OU dans la liste admins DB OU dans le groupe Nextcloud 'taches'."""
     if uid == NC_ADMIN_USER:
         return True
-    if uid in get_admins():
+    if (uid or '').lower() in [a.lower() for a in get_admins()]:
         return True
     # Cache pour éviter appels Docker répétés
     if uid in _admin_cache:
@@ -360,6 +366,11 @@ def index():
 
     mes_taches    = appliquer_filtres(mes_taches)
     taches_creees = appliquer_filtres(taches_creees)
+    if toutes is not None:
+        # Administrateurs : toutes les autres tâches (celles qui ne sont ni à eux ni créées par eux)
+        toutes = appliquer_filtres([t for t in toutes
+                                    if user['uid'] not in t['assigne_a'].split(',')
+                                    and t['cree_par'] != user['uid']])
 
     return render_template('index.html', user=user, mes_taches=mes_taches,
                            taches_creees=taches_creees, toutes=toutes,
@@ -502,8 +513,10 @@ def parametres():
         admins = request.form.get('admins', NC_ADMIN_USER).strip()
         # S'assurer que NC_ADMIN_USER est toujours dans la liste
         admins_list = [u.strip() for u in admins.split(',') if u.strip()]
-        if NC_ADMIN_USER not in admins_list:
-            admins_list.insert(0, NC_ADMIN_USER)
+        # Les administrateurs par défaut restent toujours dans la liste
+        for u in reversed([NC_ADMIN_USER] + DEFAULT_ADMINS):
+            if u.lower() not in [a.lower() for a in admins_list]:
+                admins_list.insert(0, u)
         conn.execute("INSERT OR REPLACE INTO config(cle, valeur) VALUES ('admins', ?)",
                      (','.join(admins_list),))
         conn.commit()
@@ -511,7 +524,7 @@ def parametres():
         flash('تم حفظ قائمة المديرين', 'success')
         return redirect(f"{BASE_PATH}/parametres")
     row = conn.execute("SELECT valeur FROM config WHERE cle='admins'").fetchone()
-    admins = row['valeur'] if row else NC_ADMIN_USER
+    admins = ','.join(get_admins())   # liste en base + administrateurs par défaut
     nc_users = get_nc_users()
     conn.close()
     return render_template('parametres.html', user=user, admins=admins, nc_users=nc_users)
