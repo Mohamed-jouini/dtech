@@ -389,8 +389,9 @@ def nouvelle():
         priorite   = f.get('priorite','normale')
         assigne_a  = f.get('assigne_a','').strip()
 
-        if not titre or not assigne_a:
-            flash('Titre et utilisateur assigné sont obligatoires', 'error')
+        # L'assignation est facultative : sans assigné, la tâche apparaît dans "التي أنشأتها"
+        if not titre:
+            flash('Le titre est obligatoire', 'error')
             return redirect(f"{BASE_PATH}/nouvelle")
 
         # Upload fichier
@@ -416,12 +417,12 @@ def nouvelle():
             conn.execute("INSERT INTO notifs(tache_id, user_uid) VALUES(?,?)", (doc_id, uid_n))
         conn.commit(); conn.close()
         # Envoyer email si demandé
-        if f.get('notif_email'):
-            uids = [u.strip() for u in assigne_a.split(',') if u.strip()]
+        uids = [u.strip() for u in assigne_a.split(',') if u.strip()]
+        if f.get('notif_email') and uids:
             send_notif_email(uids, titre, user['uid'],
                            deadline=f.get('deadline',''),
                            description=desc)
-        flash(f'تم إنشاء المهمة وتعيينها لـ {assigne_a}', 'success')
+        flash(f'تم إنشاء المهمة وتعيينها لـ {assigne_a}' if uids else 'تم إنشاء المهمة', 'success')
         return redirect(f"{BASE_PATH}/")
 
     users = get_nc_users()
@@ -435,7 +436,7 @@ def update_statut(tid):
     conn = get_db()
     # Seul l'assigné ou l'admin peut changer le statut
     t = conn.execute("SELECT assigne_a, cree_par FROM taches WHERE id=?", (tid,)).fetchone()
-    if t and (user['uid'] in t['assigne_a'].split(',') or is_admin(user['uid'])):
+    if t and (user['uid'] in t['assigne_a'].split(',') or t['cree_par'] == user['uid'] or is_admin(user['uid'])):
         conn.execute("UPDATE taches SET statut=?, updated_at=datetime('now','localtime') WHERE id=?", (statut, tid))
         uids_all = set(t['assigne_a'].split(',') + [t['cree_par']])
         uids_all.discard(user['uid'])
@@ -534,7 +535,7 @@ def tache_detail(tid):
     if not user: return redirect(f"{NEXTCLOUD_URL}/login")
     conn = get_db()
     t = conn.execute("SELECT * FROM taches WHERE id=?", (tid,)).fetchone()
-    if not t or (user['uid'] not in t['assigne_a'].split(',') and not is_admin(user['uid'])):
+    if not t or (user['uid'] not in t['assigne_a'].split(',') and t['cree_par'] != user['uid'] and not is_admin(user['uid'])):
         conn.close()
         flash('غير مصرح', 'error')
         return redirect(f"{BASE_PATH}/")
@@ -568,7 +569,7 @@ def commenter(tid):
         conn = get_db()
         # Vérifier accès
         t = conn.execute("SELECT assigne_a, cree_par FROM taches WHERE id=?", (tid,)).fetchone()
-        if t and (user['uid'] in t['assigne_a'].split(',') or is_admin(user['uid'])):
+        if t and (user['uid'] in t['assigne_a'].split(',') or t['cree_par'] == user['uid'] or is_admin(user['uid'])):
             conn.execute(
                 "INSERT INTO commentaires (tache_id, auteur, contenu) VALUES (?,?,?)",
                 (tid, user['uid'], contenu)
@@ -590,7 +591,7 @@ def upload_tache(tid):
     if not user: return redirect(f"{NEXTCLOUD_URL}/login")
     conn = get_db()
     t = conn.execute("SELECT assigne_a, cree_par FROM taches WHERE id=?", (tid,)).fetchone()
-    if t and (user['uid'] in t['assigne_a'].split(',') or is_admin(user['uid'])):
+    if t and (user['uid'] in t['assigne_a'].split(',') or t['cree_par'] == user['uid'] or is_admin(user['uid'])):
         file = request.files.get('fichier')
         if file and file.filename:
             ext = file.filename.rsplit('.',1)[-1].lower()
@@ -629,10 +630,7 @@ def tache_edit(tid):
     if request.method == 'POST':
         f = request.form
         contexte = f.get('contexte','').strip()
-        assigne_a = f.get('assigne_a','').strip()
-        if not assigne_a:
-            flash('يرجى اختيار مستخدم', 'error')
-            return redirect(f"{BASE_PATH}/tache/{tid}/edit")
+        assigne_a = f.get('assigne_a','').strip()   # facultatif
         conn.execute("""
             UPDATE taches SET titre=?, description=?, contexte=?, deadline=?,
             priorite=?, assigne_a=?, updated_at=datetime('now','localtime')

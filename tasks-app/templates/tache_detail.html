@@ -72,9 +72,9 @@
       📅 {{ t.deadline }}{% if is_late %} ⚠️{% endif %}
     </span>
     {% endif %}
-    {% for u in t.assigne_a.split(',') %}
+    {% for u in t.assigne_a.split(',') %}{% if u.strip() %}
     <span class="tag" style="background:#F1EEE9;color:var(--text2)">👤 {{ u.strip() }}</span>
-    {% endfor %}
+    {% endif %}{% endfor %}
     <span class="tag" style="background:#F1EEE9;color:var(--text2)">🕐 {{ t.created_at[:16] }}</span>
   </div>
 </div>

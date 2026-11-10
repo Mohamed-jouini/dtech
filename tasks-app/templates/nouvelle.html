@@ -61,7 +61,7 @@
         </div>
 
         <div class="form-group full">
-          <label>تعيين إلى * <small style="font-weight:400;color:var(--text2)">(انقر لاختيار — يمكن اختيار أكثر من مستخدم)</small></label>
+          <label>تعيين إلى <small style="font-weight:400;color:var(--text2)">(اختياري — انقر لاختيار، يمكن اختيار أكثر من مستخدم)</small></label>
           <input type="hidden" name="assigne_a" id="assigneA">
           <div class="nc-users-grid">
             {% for u in nc_users %}
@@ -119,7 +119,6 @@ function toggleUser(btn,val){
   document.getElementById('selectedTags').innerHTML=[...selected].map(v=>`<span class="user-tag">✅ ${v}</span>`).join('');
 }
 function validateForm(){
-  if(selected.size===0){document.getElementById('userError').style.display='block';return false;}
   serializeCtx();return true;
 }
 

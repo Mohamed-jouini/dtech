@@ -2,8 +2,28 @@
 {% block title %}قائمة الحرفاء{% endblock %}
 {% block content %}
 
+<style>
+  /* FIXE : menu + en-tête + recherche + titre de la liste + titres des colonnes ; seules les lignes défilent (écran > 820px) */
+  @media (min-width: 821px) {
+    .sticky-search { position: sticky; top: var(--stk-a, 60px); z-index: 8500; overflow: visible !important;
+                     background: #F7F5F1 !important; backdrop-filter: none !important; }
+    .list-card { overflow: visible !important; }
+    .list-card > .card-header { position: sticky; top: var(--stk-b, 120px); z-index: 8400;
+                                background: #F7F5F1 !important; border-radius: 20px 20px 0 0; }
+    .list-card table { overflow: visible !important; border-radius: 0 !important; background: transparent; }
+    .list-card thead th { position: sticky; top: var(--stk-c, 170px); z-index: 8300;
+                          background: #F3F1EC !important; }
+  }
+  @media (min-width: 821px) and (max-height: 760px) {
+    .sticky-search > .card-body { padding: 6px 16px !important; }
+    .list-card > .card-header { padding-top: 8px !important; padding-bottom: 8px !important; }
+    .list-card thead th { padding-top: 7px !important; padding-bottom: 7px !important; }
+  }
+  @media print { .sticky-search, .list-card > .card-header, .list-card thead th { position: static !important; } }
+</style>
+
 <!-- BARRE DE RECHERCHE -->
-<div class="card" style="margin-bottom:14px">
+<div class="card sticky-search" style="margin-bottom:14px">
   <div class="card-body" style="padding:12px 18px">
     <form method="GET" style="display:flex;gap:10px;align-items:center">
       <input type="text" name="q" value="{{ q }}"
@@ -18,7 +38,7 @@
 </div>
 
 <!-- LISTE -->
-<div class="card">
+<div class="card list-card">
   <div class="card-header">
     <h2>📋 الحرفاء — {{ clients|length }} ملف</h2>
     <a href="{{ BASE }}/new" class="btn btn-success btn-sm">＋ ملف جديد</a>
@@ -68,4 +88,29 @@
   </table>
   {% endif %}
 </div>
+
+<script>
+/* Décalages des barres fixes : menu + en-tête → recherche → titre de la liste → titres des colonnes */
+(function () {
+  function h(el) { return el ? el.getBoundingClientRect().height : 0; }
+  function calc() {
+    var nav = document.querySelector('body > .topnav'),
+        ent = document.querySelector('.entete-fixe') || document.querySelector('.header'),
+        se  = document.querySelector('.sticky-search'),
+        ch  = document.querySelector('.list-card > .card-header');
+    var a = h(nav) + h(ent), b = a + h(se), c = b + h(ch);
+    var r = document.documentElement.style;
+    r.setProperty('--stk-a', a + 'px'); r.setProperty('--stk-b', b + 'px'); r.setProperty('--stk-c', c + 'px');
+  }
+  window.addEventListener('load', function () { calc(); setTimeout(calc, 300); });
+  window.addEventListener('resize', calc);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(calc);
+    ['body > .topnav', '.entete-fixe', '.sticky-search', '.list-card > .card-header'].forEach(function (s) {
+      var el = document.querySelector(s); if (el) ro.observe(el);
+    });
+  }
+  calc();
+})();
+</script>
 {% endblock %}

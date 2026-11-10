@@ -64,7 +64,7 @@
         </div>
 
         <div class="form-group full">
-          <label>تعيين إلى * <small style="font-weight:400;color:var(--text2)">(انقر لاختيار/إلغاء)</small></label>
+          <label>تعيين إلى <small style="font-weight:400;color:var(--text2)">(اختياري — انقر لاختيار/إلغاء)</small></label>
           <input type="hidden" name="assigne_a" id="assigneA" value="{{ t.assigne_a }}">
           <div class="nc-users-grid" id="usersGrid">
             {% set current = t.assigne_a.split(',') %}
@@ -134,7 +134,6 @@ function renderTags() {
   });
 }
 function validateForm() {
-  if (selected.size === 0) { document.getElementById('userError').style.display = 'block'; return false; }
   serializeCtx();
   return true;
 }
