@@ -422,14 +422,363 @@ img,video,canvas,iframe,svg{max-width:100%}
 }
 
 @media (max-width:480px){
-  .stats-grid{grid-template-columns:1fr!important}
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px!important}
   .header h1,.app-header h1{font-size:15px}
   .btn-new,.header-actions .btn-new{flex:1 1 auto;text-align:center}
   .month-header h3{font-size:16px}
   .topnav a{padding:7px 10px;font-size:12.5px}
 }
 /* ===== fin MOBILE RESPONSIVE v1 ===== */
+
+/* ===== DESIGN v2 ======================================================
+   Couche visuelle commune aux applications (sauf مهامي, déjà refaite).
+   Injectée par inject_mobile.ps1 après le thème « AVOCAT v2 » et le bloc mobile.
+   Bureau : cartes arrondies, tableaux lisibles, boutons et formulaires harmonisés.
+   Téléphone (≤ 820px) : tableaux → fiches (via design-v2.js), barres compactes,
+   boutons d'enregistrement toujours accessibles.
+   ===================================================================== */
+:root{
+  --d-ink:#2B2A28; --d-ink2:#5C5852; --d-ink3:#8C867E; --d-line:rgba(120,112,102,.18);
+  --d-blue:#3E7FD1; --d-blue-d:#2C65AE; --d-red:#C25B4A; --d-green:#2E9E57; --d-amber:#B5862B;
+  --d-card:#fff; --d-soft:#F6F4F0;
+  --d-shadow:0 4px 18px rgba(72,64,54,.08); --d-shadow-h:0 12px 30px rgba(72,64,54,.14);
+}
+
+/* ---------- Page et en-têtes ---------- */
+.container{max-width:1320px!important}
+.header h1,.app-header h1{font-weight:800!important;color:var(--d-ink)!important;display:flex;align-items:center;gap:8px}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ---------- Boutons ---------- */
+.btn,.btn-new,.btn-add,.btn-save,.btn-print,.btn-back,.btn-cancel,.btn-primary,.btn-secondary,.btn-success,
+.btn-danger,.btn-info,.btn-warning,.btn-upload{
+  font-weight:700!important;transition:transform .12s,box-shadow .15s,background .15s!important}
+.btn:hover,.btn-new:hover,.btn-save:hover,.btn-primary:hover,.btn-success:hover{transform:translateY(-1px)}
+.btn-new,.btn-save,.btn-upload{box-shadow:0 6px 16px rgba(62,127,209,.25)!important}
+/* petits boutons d'action dans les tableaux : carrés arrondis */
+td .btn-sm,td .btn-edit,td .btn-del,td .btn-print-sm,.actions-cell .btn-sm{
+  border-radius:10px!important;min-width:32px;min-height:32px;display:inline-flex!important;align-items:center;justify-content:center;
+  padding:5px 9px!important;font-size:12px!important;box-shadow:none!important}
+
+/* ---------- Champs ---------- */
+input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]),select,textarea{
+  transition:border-color .15s,box-shadow .15s}
+.toolbar input,.search-global input,.search-input,.search-box,.search-bar input,.filters input[type=text],.filters input[type=search]{
+  border-radius:999px!important;padding-right:16px!important;padding-left:16px!important}
+
+/* ---------- Tuiles de compteurs ---------- */
+.stats .stat,.stats-bar .stat{
+  background:var(--d-card)!important;border:1px solid var(--d-line)!important;border-radius:16px!important;
+  box-shadow:var(--d-shadow)!important;backdrop-filter:none!important;position:relative;overflow:hidden;padding:14px 18px!important}
+.stats .stat::after,.stats-bar .stat::after{content:"";position:absolute;inset:auto 0 0 0;height:3px;background:var(--d-blue);opacity:.85}
+.stats .stat:nth-child(2)::after,.stats-bar .stat:nth-child(2)::after{background:var(--d-green)}
+.stats .stat:nth-child(3)::after,.stats-bar .stat:nth-child(3)::after{background:var(--d-amber)}
+.stats .stat:nth-child(4)::after,.stats-bar .stat:nth-child(4)::after{background:var(--d-red)}
+.stat .num{font-weight:800!important;line-height:1.1}
+.stat .lbl{font-weight:700!important;color:var(--d-ink3)!important;font-size:11.5px!important}
+
+/* ---------- Cartes ---------- */
+.card,.page,.form-card{border-radius:18px!important;box-shadow:var(--d-shadow)!important;border:1px solid var(--d-line)!important;background:var(--d-card)!important;backdrop-filter:none!important}
+.card-header,.form-card-header{background:linear-gradient(180deg,#FBFAF8,#F6F4F0)!important;border-bottom:1px solid var(--d-line)!important}
+.card-header h2,.card-header h3{font-weight:800!important;color:var(--d-ink)!important}
+
+/* ---------- Tableaux ---------- */
+html body table:not(.mt-table):not(.ctx-table):not(.no-design){
+  background:var(--d-card)!important;border:1px solid var(--d-line)!important;border-radius:16px!important;
+  box-shadow:var(--d-shadow)!important;border-collapse:separate!important;border-spacing:0!important}
+html body table:not(.mt-table):not(.ctx-table):not(.no-design) > thead th{
+  background:var(--d-soft)!important;color:var(--d-ink3)!important;font-size:11.5px!important;font-weight:800!important;
+  padding:12px 12px!important;border-bottom:1px solid var(--d-line)!important;white-space:nowrap}
+html body table:not(.mt-table):not(.ctx-table):not(.no-design) > tbody td{
+  padding:11px 12px!important;border-bottom:1px solid var(--d-line)!important;font-size:13px;vertical-align:middle}
+html body table:not(.mt-table):not(.ctx-table):not(.no-design) > tbody tr:last-child td{border-bottom:0!important}
+html body table:not(.mt-table):not(.ctx-table):not(.no-design) > tbody tr:hover td{background:rgba(62,127,209,.05)}
+/* les tableaux déjà enveloppés dans une carte ne doublent pas la bordure */
+.card table,.table-wrap table,.list-card table{border:0!important;box-shadow:none!important;border-radius:0!important}
+
+/* ---------- Pastilles ---------- */
+.badge,.sifa,.psifa,.badge-type,.badge-wilaya,.badge-file,.ocr-badge,.inst-badge,.app-badge,.action-badge,.tawar-badge,.badge-tawer{
+  border-radius:999px!important;font-weight:700!important}
+
+/* ---------- Formulaires (pages .page / .form-body) ---------- */
+.section-title,.section-label{font-weight:800!important;color:var(--d-blue-d)!important;display:flex;align-items:center;gap:8px}
+.field label,.form-group label{font-weight:700!important;color:var(--d-ink2)!important;font-size:12.5px!important}
+
+/* ---------- États vides ---------- */
+.empty,.empty-state,.empty-row{border-radius:16px!important;color:var(--d-ink3)!important}
+
+/* ═════════════════════════ TÉLÉPHONE ═════════════════════════ */
+@media (max-width:820px){
+  /* tableaux → fiches (classes posées par design-v2.js) */
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design){display:block!important;overflow:visible!important;background:transparent!important;
+    border:0!important;box-shadow:none!important;border-radius:0!important;width:100%!important;max-width:100%}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > thead{display:none!important}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody{display:block!important}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr{display:grid!important;grid-template-columns:1fr 1fr;gap:7px 12px;align-items:start;
+    background:var(--d-card);border:1px solid var(--d-line);border-radius:14px;padding:12px 14px;margin:0 0 10px;
+    box-shadow:0 2px 10px rgba(72,64,54,.07);position:relative}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td{display:block!important;padding:0!important;border:0!important;
+    background:transparent!important;text-align:right!important;min-width:0!important;max-width:none!important;
+    white-space:normal!important;word-break:break-word;font-size:13.5px;box-shadow:none!important}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td[data-label]::before{content:attr(data-label);display:block;font-size:10.5px;
+    font-weight:800;color:var(--d-ink3);margin-bottom:1px}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-first{grid-column:1/-1;font-weight:800;font-size:14.5px;color:var(--d-ink)}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-wide{grid-column:1/-1}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-num{position:absolute;top:10px;left:12px;font-size:11px!important;color:var(--d-ink3);font-weight:800}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-num::before{content:"#"!important;display:inline!important;font-size:11px;margin:0}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-actions{grid-column:1/-1;display:flex!important;flex-wrap:wrap;gap:8px;align-items:center;
+    padding-top:9px!important;margin-top:2px;border-top:1px solid var(--d-line)!important}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-actions::before{display:none!important}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-actions .actions-cell{display:flex;gap:8px;flex-wrap:wrap}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-actions .btn-sm,html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-actions a,
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-actions button{min-height:38px;min-width:42px}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr > td.td-empty{display:none!important}
+  /* lignes de regroupement (jour, mois…) */
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr.tr-group{display:block!important;background:transparent;border:0;box-shadow:none;padding:4px 2px;margin:10px 0 6px}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr.tr-group > td{font-weight:800;color:var(--d-blue-d)!important;font-size:13.5px}
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr.tr-group > td::before{display:none!important}
+  /* lignes signalées (urgent, sans date, alerte) */
+  html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr.jalsa-alerte,html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr.urgent-row,html body table.tbl-cards:not(.mt-table):not(.ctx-table):not(.no-design) > tbody > tr.no-date-row{
+    background:#FFF1EE;border-color:#F1C7C0;box-shadow:inset -4px 0 0 var(--d-red),0 2px 10px rgba(72,64,54,.07)}
+
+  /* formulaires : bouton d'enregistrement toujours visible */
+  .page .actions,.form-actions,.status-bar + .actions{position:sticky;bottom:0;z-index:50;background:rgba(255,255,255,.96);
+    padding:10px 12px!important;margin:12px -12px -12px!important;border-top:1px solid var(--d-line);backdrop-filter:blur(8px)}
+  .page{border-radius:14px!important}
+  .form-body{padding:14px!important}
+
+  /* tuiles de compteurs en une rangée */
+  .stats,.stats-bar{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto;gap:8px!important;scrollbar-width:none;padding-bottom:4px}
+  .stats::-webkit-scrollbar,.stats-bar::-webkit-scrollbar{display:none}
+  .stats .stat,.stats-bar .stat{flex:1 0 auto!important;min-width:110px;padding:10px 12px!important}
+  .stat .num{font-size:21px!important}
+
+
+  /* tuiles « stat-card » (facturation) : 2 par rangée, compactes */
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important;gap:8px!important}
+  .stat-card{padding:12px!important;gap:10px!important}
+  .stat-card .stat-icon{width:36px!important;height:36px!important;font-size:18px!important;border-radius:11px!important}
+  .stat-card .stat-val{font-size:20px!important}
+  .stat-card .stat-lab{font-size:10.5px!important}
+  /* filtres (سجل) : 2 colonnes, recherche sur toute la largeur */
+  form.filters,.filters{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important;align-items:center}
+  .filters > *{min-width:0!important;width:100%!important;margin:0!important}
+  .filters input[type=text],.filters input[type=search],.filters .results-count{grid-column:1/-1}
+
+  /* fenêtres modales et détails */
+  .detail-row,.info-line{flex-wrap:wrap}
+}
+
+/* ═════════════ DESIGN v2.1 — refonte (style « مهامي ») ═════════════ */
+
+/* ---- Zone d'en-tête fixe : une barre claire, contenu aligné sur la largeur de la page ---- */
+.entete-fixe{background:rgba(250,249,246,.94)!important;border-bottom:1px solid var(--d-line);
+  box-shadow:0 10px 26px -18px rgba(60,50,40,.45)!important}
+.entete-fixe > .header,.entete-fixe > .app-header,.entete-fixe > .toolbar,.entete-fixe > .global-toolbar,
+.entete-fixe > .year-nav,.entete-fixe > .filters{
+  background:transparent!important;border:0!important;box-shadow:none!important;backdrop-filter:none!important;
+  max-width:none!important;margin:0!important;
+  padding-left:max(20px,calc((100% - 1320px)/2 + 20px))!important;padding-right:max(20px,calc((100% - 1320px)/2 + 20px))!important}
+.entete-fixe > .toolbar,.entete-fixe > .global-toolbar,.entete-fixe > .filters{border-top:1px solid var(--d-line)!important}
+
+/* ---- Titre de page avec pastille d'icône (posée par design-v2.js) ---- */
+.header h1,.app-header h1{font-size:21px!important;gap:10px!important}
+.h-ico{width:40px;height:40px;flex:none;border-radius:12px;display:inline-grid;place-items:center;font-size:20px;
+  background:linear-gradient(135deg,#EAF2FC,#F4F8FE);box-shadow:inset 0 0 0 1px rgba(62,127,209,.18)}
+.h-sub{display:block;font-size:12px;font-weight:600;color:var(--d-ink3);margin-top:1px}
+
+/* ---- Tuiles de compteurs : grand chiffre coloré, libellé, fond teinté ---- */
+.stats{gap:14px!important}
+.stats .stat,.stats-bar .stat{--sc:var(--d-blue);text-align:right!important;padding:16px 20px 14px!important;
+  background:linear-gradient(135deg,#fff 55%,color-mix(in srgb,var(--sc) 7%,#fff))!important}
+.stats .stat:nth-child(2),.stats-bar .stat:nth-child(2){--sc:var(--d-green)}
+.stats .stat:nth-child(3),.stats-bar .stat:nth-child(3){--sc:var(--d-amber)}
+.stats .stat:nth-child(4),.stats-bar .stat:nth-child(4){--sc:var(--d-red)}
+.stats .stat::after,.stats-bar .stat::after{background:var(--sc)!important}
+.stats .stat .num,.stats-bar .stat .num{font-size:30px!important;color:var(--sc)!important}
+
+.stats .stat:only-child{flex:0 0 auto!important;min-width:220px;max-width:300px}
+.badge,.badge-wait,.badge-done,.badge-type{white-space:nowrap}
+
+/* ---- Tableaux : pastilles de statut et dates (posées par design-v2.js) ---- */
+.d-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:800;
+  color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);white-space:nowrap}
+.d-date{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600;color:var(--d-ink2)}
+.d-date.is-today{color:#fff;background:var(--d-blue);padding:2px 9px;border-radius:999px}
+html body table:not(.mt-table):not(.ctx-table):not(.no-design) > tbody tr{transition:background .12s}
+html body table:not(.mt-table):not(.ctx-table):not(.no-design) > tbody td:first-child{font-weight:700;color:var(--d-ink)}
+
+/* ---- Agenda : en-têtes de mois ---- */
+.month-header{border-radius:16px!important;padding:14px 20px!important}
+.month-header .month-icon{width:44px;height:44px;border-radius:13px;display:inline-grid;place-items:center;background:#EAF2FC}
+.month-header h3{font-weight:800!important}
+
+/* ---- Pages de formulaire ---- */
+.page{max-width:980px!important}
+.page > .header{padding:18px 22px!important;border-bottom:1px solid var(--d-line)!important}
+.section-title{background:linear-gradient(90deg,#EEF4FC,#F7FAFE)!important;border-right:4px solid var(--d-blue)!important;
+  color:var(--d-blue-d)!important;border-radius:10px!important;padding:10px 14px!important;font-size:14.5px!important}
+.field input,.field select,.field textarea,.form-group input,.form-group select,.form-group textarea{min-height:42px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--d-blue)!important;box-shadow:0 0 0 3px rgba(62,127,209,.18)!important}
+/* barre d'actions des formulaires toujours visible en bas */
+.page > .actions,.form-actions{position:sticky;bottom:0;z-index:60;background:rgba(250,249,246,.96)!important;
+  backdrop-filter:blur(8px);border-top:1px solid var(--d-line)!important;box-shadow:0 -8px 20px -16px rgba(60,50,40,.5)}
+.btn-save{padding:11px 28px!important;font-size:14px!important}
+.status-bar{border-radius:0!important;font-weight:800!important}
+
+/* ---- Pages de détail (champ : valeur) ---- */
+.field-row,.info-line,.detail-row{padding:10px 4px!important;border-bottom:1px solid var(--d-line)!important}
+.field-row:nth-child(even),.info-line:nth-child(even){background:rgba(246,244,240,.6)}
+.field-label,.info-label,.detail-label{color:var(--d-ink3)!important;font-weight:800!important;font-size:12.5px!important}
+.field-value,.info-value{font-weight:600;color:var(--d-ink)}
+
+/* ---- États vides ---- */
+div.empty,div.empty-state,.mt-empty{background:#fff!important;border:1px dashed rgba(120,112,102,.3)!important;padding:36px 16px!important}
+div.empty::before{content:"📭";display:block;font-size:34px;margin-bottom:8px;opacity:.75}
+
+/* ---- Barre de recherche hors en-tête (cartes) ---- */
+.search-bar,.filter-bar{background:#fff!important;border:1px solid var(--d-line)!important;border-radius:16px!important;box-shadow:var(--d-shadow)!important}
+
+@media (max-width:820px){
+  .entete-fixe > .header,.entete-fixe > .app-header,.entete-fixe > .toolbar,.entete-fixe > .global-toolbar,
+  .entete-fixe > .year-nav,.entete-fixe > .filters{padding-left:10px!important;padding-right:10px!important}
+  .header h1,.app-header h1{font-size:16px!important}
+  .h-ico{width:32px;height:32px;font-size:16px;border-radius:10px}
+  .stats .stat .num,.stats-bar .stat .num{font-size:22px!important}
+  .page > .actions,.form-actions{margin:12px -12px -12px!important}
+  .month-header .month-icon{width:36px;height:36px}
+}
+/* ===== fin DESIGN v2 ===== */
 </style>
+<script id="design-v2-js">
+/* ===== DESIGN v2 (script) =====
+   Prépare les tableaux pour l'affichage en fiches sur téléphone :
+   - étiquette de chaque cellule (data-label) = titre de sa colonne ;
+   - cellule « # », première colonne utile, colonne d'actions, cellules vides ;
+   - lignes de regroupement (une seule cellule sur toute la largeur).
+   Suit aussi les tableaux construits en JavaScript après chargement (MutationObserver).
+   Tableaux exclus : .no-cards, .mt-table, .ctx-table, ceux qui contiennent des champs de saisie. */
+(function () {
+  var EXCLUS = '.no-cards, .mt-table, .ctx-table';
+  function txt(el) { return (el.textContent || '').replace(/\s+/g, ' ').trim(); }
+  function vide(td) {
+    if (td.querySelector('img, select, input, button, a, svg, form')) return false;
+    return txt(td).replace(/[—–\-]/g, '') === '';
+  }
+  /* Titres par colonne, en tenant compte des en-têtes sur deux lignes (colspan / rowspan) :
+     « groupe — sous-titre » quand une colonne appartient à un groupe. */
+  function titres(table) {
+    var rows = table.tHead ? table.tHead.rows : null;
+    if (!rows || !rows.length) return null;
+    var grille = [];
+    for (var r = 0; r < rows.length; r++) {
+      grille[r] = grille[r] || [];
+      var c = 0;
+      Array.prototype.forEach.call(rows[r].cells, function (th) {
+        while (grille[r][c] !== undefined) c++;
+        var cs = parseInt(th.getAttribute('colspan') || '1', 10) || 1;
+        var rs = parseInt(th.getAttribute('rowspan') || '1', 10) || 1;
+        for (var i = 0; i < rs; i++) for (var j = 0; j < cs; j++) {
+          grille[r + i] = grille[r + i] || [];
+          grille[r + i][c + j] = { t: txt(th), multi: cs > 1 };
+        }
+        c += cs;
+      });
+    }
+    var der = grille[grille.length - 1] || [], out = [];
+    for (var k = 0; k < der.length; k++) {
+      var bas = der[k] ? der[k].t : '', haut = grille[0][k];
+      out.push(haut && haut.multi && haut.t && haut.t !== bas ? haut.t + ' — ' + bas : bas);
+    }
+    return out;
+  }
+  function preparer(table) {
+    if (table.matches(EXCLUS) || table.closest('.no-cards')) return;
+    var tb = table.tBodies && table.tBodies[0];
+    if (!tb) return;
+    if (tb.querySelector('input:not([type=hidden]):not([type=checkbox]), textarea')) return;  // tableau de saisie : on laisse le défilement
+    var h = titres(table);
+    if (!h || !h.length) return;
+    table.classList.add('tbl-cards');
+    var numFirst = /^(#|ع\.?|n°|no)$/i.test(h[0] || '');
+    var premier = numFirst ? 1 : 0;
+    Array.prototype.forEach.call(tb.rows, function (tr) {
+      var cells = tr.cells;
+      if (cells.length === 1 && (parseInt(cells[0].getAttribute('colspan') || '1', 10) > 1 || h.length > 1)) {
+        tr.classList.add('tr-group'); return;
+      }
+      var col = 0;
+      Array.prototype.forEach.call(cells, function (td) {
+        var lab = h[col] || '';
+        col += parseInt(td.getAttribute('colspan') || '1', 10) || 1;
+        if (lab && td.getAttribute('data-label') !== lab) td.setAttribute('data-label', lab);
+        var actions = /إجراءات|actions|تفاصيل$/i.test(lab) ||
+                      (td.querySelector('a, button') && !txt(td).replace(/[^؀-ۿa-zA-Z0-9]/g, '').length);
+        td.classList.toggle('td-actions', !!actions);
+        td.classList.toggle('td-num', numFirst && td === cells[0]);
+        td.classList.toggle('td-first', td === cells[premier] && !actions);
+        td.classList.toggle('td-empty', !actions && td !== cells[premier] && vide(td));
+        var long = !actions && txt(td).length > 38;
+        td.classList.toggle('td-wide', long);
+      });
+    });
+  }
+  /* Pastilles de statut et dates dans les cellules texte simples */
+  var STATUTS = {
+    'منجز': '#2E9E57', 'منجزة': '#2E9E57', 'محكوم فيها': '#2E9E57', 'مدفوعة': '#2E9E57', 'Payé': '#2E9E57', 'Payée': '#2E9E57',
+    'في الانتظار': '#B5862B', 'قيد الانتظار': '#B5862B', 'تصريح': '#B5862B', 'تصريح بالحكم': '#B5862B', 'En cours': '#B5862B', 'Brouillon': '#8C867E',
+    'جارية': '#2C65AE', 'جاري': '#2C65AE', 'Validé': '#2C65AE', 'ملغى': '#C25B4A', 'Annulé': '#C25B4A', 'متأخر': '#C25B4A', 'متأخرة': '#C25B4A'
+  };
+  var auj = new Date(); auj = auj.getFullYear() + '-' + ('0' + (auj.getMonth() + 1)).slice(-2) + '-' + ('0' + auj.getDate()).slice(-2);
+  function decorer(table) {
+    if (table.matches(EXCLUS)) return;
+    var tb = table.tBodies && table.tBodies[0]; if (!tb) return;
+    Array.prototype.forEach.call(tb.querySelectorAll('td'), function (td) {
+      if (td.children.length || td.dataset.deco) return;
+      var t = txt(td);
+      if (STATUTS[t]) {
+        td.dataset.deco = '1';
+        td.innerHTML = '<span class="d-pill" style="--c:' + STATUTS[t] + '">' + td.innerHTML.trim() + '</span>';
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+        td.dataset.deco = '1';
+        td.innerHTML = '<span class="d-date' + (t === auj ? ' is-today' : '') + '">' + t + '</span>';
+      }
+    });
+  }
+  /* Titre de page : la première icône (emoji) devient une pastille */
+  function titrePage() {
+    Array.prototype.forEach.call(document.querySelectorAll('.header h1, .app-header h1'), function (h1) {
+      if (h1.querySelector('.h-ico')) return;
+      var n = h1.firstChild;
+      while (n && n.nodeType === 3 && !n.nodeValue.trim()) n = n.nextSibling;
+      if (!n || n.nodeType !== 3) return;
+      var m = n.nodeValue.match(/^\s*((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:️|‍\p{Extended_Pictographic})*)\s*/u);
+      if (!m) return;
+      var ico = document.createElement('span'); ico.className = 'h-ico'; ico.textContent = m[1];
+      n.nodeValue = n.nodeValue.slice(m[0].length);
+      h1.insertBefore(ico, n);
+    });
+  }
+  function tout() {
+    Array.prototype.forEach.call(document.querySelectorAll('table'), function (t) { preparer(t); decorer(t); });
+    titrePage();
+  }
+  var attente = null;
+  function plusTard() { if (attente) return; attente = setTimeout(function () { attente = null; tout(); }, 60); }
+  function demarrer() {
+    tout();
+    if (window.MutationObserver) {
+      new MutationObserver(function (muts) {
+        for (var i = 0; i < muts.length; i++) {
+          var t = muts[i].target;
+          if (t && t.closest && (t.closest('table') || t.querySelector && t.querySelector('table'))) { plusTard(); return; }
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer); else demarrer();
+})();
+</script>
 </head>
 <body><nav class="topnav">
   <div class="topnav__list">

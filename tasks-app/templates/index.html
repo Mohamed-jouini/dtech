@@ -1,205 +1,339 @@
 {% extends "base.html" %}
 {% block title %}مهامي{% endblock %}
-{% block extra_script %}
-<script>
-let countdown = 30;
-let timer = null;
 
-const counter = document.createElement('div');
-counter.style.cssText = 'position:fixed;bottom:16px;left:16px;background:rgba(30,76,134,.85);color:white;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;z-index:999;cursor:pointer;user-select:none;';
-counter.title = 'انقر للتحديث الآن';
-counter.onclick = function() { clearInterval(timer); location.reload(); };
-document.body.appendChild(counter);
-
-function tick() {
-  counter.textContent = '🔄 تحديث خلال ' + countdown + 'ث';
-  if (countdown <= 0) {
-    clearInterval(timer);
-    counter.textContent = '🔄 جاري التحديث...';
-    location.reload();
-    return;
-  }
-  countdown--;
-}
-
-tick();
-timer = setInterval(tick, 1000);
-</script>
-{% endblock %}
 {% block extra_style %}
 <style>
-  .task-row { background:var(--white); border-radius:8px; box-shadow:0 1px 4px rgba(30,76,134,.08); padding:10px 14px; margin-bottom:8px; border-right:3px solid var(--border); display:flex; align-items:center; gap:10px; }
-  .task-row.haute   { border-right-color:#C25B4A; }
-  .task-row.normale { border-right-color:#3E7FD1; }
-  .task-row.basse   { border-right-color:#34B457; }
-  .task-row.terminee { opacity:.6; }
-  .task-row.unread  { background:#F3F1EC; }
-  .task-icon { font-size:18px; flex-shrink:0; }
-  .task-body { flex:1; min-width:0; }
-  .task-titre { font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .task-sub { font-size:11px; color:var(--text2); margin-top:2px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
-  .task-actions { display:flex; gap:5px; align-items:center; flex-shrink:0; }
-  .tag-sm { padding:1px 8px; border-radius:8px; font-size:10px; font-weight:700; }
-  .notif-dot { width:8px; height:8px; border-radius:50%; background:#C25B4A; display:inline-block; flex-shrink:0; }
-  .col-header { background:var(--white); border-radius:10px; padding:12px 16px; margin-bottom:10px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:space-between; border-top:3px solid var(--blue2); }
-  .col-header h3 { font-size:14px; font-weight:700; color:var(--blue); margin:0; }
-  .status-mini { padding:4px 8px; border:1px solid var(--border); border-radius:6px; font-size:11px; font-family:inherit; cursor:pointer; background:var(--white); }
-  .empty-sm { text-align:center; padding:20px; color:var(--text2); font-size:13px; background:var(--white); border-radius:8px; }
-  .search-bar { background:var(--white); border-radius:10px; padding:12px 16px; margin-bottom:14px; box-shadow:var(--shadow); display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .two-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  @media(max-width:700px){ .two-cols { grid-template-columns:1fr; } }
+  /* ═══════════════ مهامي — page d'accueil ═══════════════ */
+  .content { max-width: 1180px !important; }
+  .mt { --ink:#2B2A28; --ink2:#5C5852; --ink3:#8C867E; --line:rgba(120,112,102,.18); --blue:#3E7FD1; --blue-d:#2C65AE;
+        --red:#C25B4A; --green:#2E9E57; --amber:#B5862B; --card:#fff; }
+
+  /* En-tête de page */
+  .mt-hero { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:4px 0 14px; }
+  .mt-hero h2 { font-size:20px; font-weight:800; color:var(--ink); margin:0; }
+  .mt-hero p { margin:2px 0 0; font-size:12.5px; color:var(--ink3); }
+  .mt-hero .btn-new-task { background:var(--blue)!important; color:#fff!important; border-radius:999px!important; padding:10px 20px!important;
+        font-weight:700; box-shadow:0 6px 18px rgba(62,127,209,.28); text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+  .mt-hero .btn-new-task:hover { background:var(--blue-d)!important; }
+
+  /* Tuiles de compteurs */
+  .mt-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:14px; }
+  .mt-stat { position:relative; display:flex; align-items:center; gap:12px; padding:14px 16px; background:var(--card);
+        border-radius:16px; box-shadow:0 4px 16px rgba(72,64,54,.08); text-decoration:none; color:var(--ink);
+        border:2px solid transparent; transition:transform .15s, box-shadow .15s, border-color .15s; overflow:hidden; }
+  .mt-stat:hover { transform:translateY(-2px); box-shadow:0 10px 26px rgba(72,64,54,.14); }
+  .mt-stat.on { border-color:var(--c); }
+  .mt-stat::after { content:""; position:absolute; inset:auto 0 0 0; height:3px; background:var(--c); opacity:.9; }
+  .mt-stat .ic { width:42px; height:42px; flex:none; border-radius:12px; display:grid; place-items:center; font-size:20px;
+        background:color-mix(in srgb, var(--c) 14%, transparent); }
+  .mt-stat .n { font-size:24px; font-weight:800; line-height:1; color:var(--c); }
+  .mt-stat .l { font-size:12px; color:var(--ink2); font-weight:600; margin-top:4px; }
+
+  /* Recherche + filtres */
+  .mt-search { display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:var(--card); border-radius:16px;
+        padding:10px 12px; box-shadow:0 4px 16px rgba(72,64,54,.08); margin-bottom:16px; }
+  .mt-search .q { flex:1 1 260px; position:relative; }
+  .mt-search .q input { width:100%; padding:10px 38px 10px 12px!important; border-radius:999px!important; font-size:14px; }
+  .mt-search .q::before { content:"🔍"; position:absolute; right:13px; top:50%; transform:translateY(-50%); font-size:14px; opacity:.6; }
+  .mt-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .mt-chip { padding:7px 14px; border-radius:999px; font-size:12.5px; font-weight:700; text-decoration:none; color:var(--ink2);
+        background:#F3F1EC; border:1px solid var(--line); white-space:nowrap; }
+  .mt-chip:hover { background:#fff; color:var(--blue-d); }
+  .mt-chip.on { background:var(--blue); color:#fff; border-color:var(--blue); }
+
+  /* Colonnes */
+  .mt-cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+  .mt-col-h { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 2px 10px; }
+  .mt-col-h h3 { font-size:15px; font-weight:800; color:var(--ink); margin:0; display:flex; align-items:center; gap:8px; }
+  .mt-count { min-width:26px; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:800; color:#fff; background:var(--c,#3E7FD1); text-align:center; }
+
+  /* Fiche tâche */
+  .tk { position:relative; display:flex; gap:10px; align-items:stretch; background:var(--card); border-radius:14px; margin-bottom:10px;
+        box-shadow:0 2px 10px rgba(72,64,54,.07); border:1px solid var(--line); overflow:hidden; transition:box-shadow .15s, transform .15s; }
+  .tk:hover { box-shadow:0 10px 24px rgba(72,64,54,.13); transform:translateY(-1px); }
+  .tk::before { content:""; width:5px; flex:none; background:var(--p,#3E7FD1); }
+  .tk.tk-haute { --p:#C25B4A; } .tk.tk-normale { --p:#3E7FD1; } .tk.tk-basse { --p:#2E9E57; }
+  .tk.is-unread { background:linear-gradient(90deg,#fff 0%, #F4F8FE 100%); border-color:rgba(62,127,209,.35); }
+  .tk.st-terminee .tk-title { color:var(--ink3); text-decoration:line-through; text-decoration-color:rgba(140,134,126,.6); }
+  .tk.st-terminee { opacity:.78; }
+  .tk-main { flex:1; min-width:0; padding:12px 4px 12px 0; text-decoration:none; color:inherit; display:block; }
+  .tk-top { display:flex; align-items:flex-start; gap:8px; }
+  .tk-title { flex:1; font-size:14px; font-weight:800; color:var(--ink); line-height:1.45;
+        display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .tk-new { flex:none; font-size:11px; font-weight:800; color:#fff; background:var(--red); padding:2px 8px; border-radius:999px; }
+  .tk-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center; }
+  .pill { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700;
+        color:var(--c); background:color-mix(in srgb, var(--c) 13%, transparent); white-space:nowrap; }
+  .chip { display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:600;
+        color:var(--ink2); background:#F3F1EC; white-space:nowrap; }
+  .chip-late { color:#fff; background:var(--red); }
+  .chip-soon { color:#7A5A12; background:#FBEFD2; }
+  .who { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; color:var(--ink2); white-space:nowrap; }
+  .av { width:22px; height:22px; border-radius:50%; display:inline-grid; place-items:center; font-size:10.5px; font-weight:800; color:#fff;
+        background:var(--a,#8C867E); flex:none; text-transform:uppercase; }
+  .tk-ctx { display:flex; align-items:center; gap:8px; margin-top:9px; font-size:11.5px; color:var(--ink2); font-weight:600; }
+  .tk-ctx .t { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; }
+  .bar { flex:1; height:7px; border-radius:999px; background:#ECE8E1; overflow:hidden; min-width:60px; }
+  .bar i { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,#34B457,#2E9E57); }
+  .tk-actions { flex:none; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:6px; padding:10px 10px 10px 12px; }
+  .tk-actions form { margin:0; }
+  .ibtn { width:34px; height:34px; border-radius:10px; display:grid; place-items:center; text-decoration:none; font-size:14px;
+        background:#F3F1EC; border:1px solid var(--line); color:var(--ink2); cursor:pointer; padding:0; }
+  .ibtn:hover { background:#fff; box-shadow:0 2px 8px rgba(72,64,54,.12); }
+  .ibtn.del { background:rgba(194,91,74,.10); border-color:rgba(194,91,74,.3); }
+  .st-sel { appearance:none; -webkit-appearance:none; border-radius:10px!important; padding:6px 10px!important; font-size:12px!important;
+        font-weight:700; min-height:0!important; cursor:pointer; text-align:center; border:1px solid var(--line)!important; width:auto; }
+  .mt-empty { text-align:center; padding:28px 16px; color:var(--ink3); font-size:13.5px; background:var(--card); border-radius:14px;
+        border:1px dashed var(--line); }
+  .mt-empty .e { font-size:30px; display:block; margin-bottom:6px; }
+
+  /* Tableau administrateurs */
+  .mt-admin { margin-top:24px; }
+  .mt-table-wrap { background:var(--card); border-radius:16px; box-shadow:0 4px 16px rgba(72,64,54,.08); border:1px solid var(--line); overflow:hidden; }
+  .content table.mt-table { width:100%; border-collapse:collapse!important; border-radius:0!important; box-shadow:none!important; background:transparent!important; font-size:13px; overflow:visible; }
+  .content table.mt-table thead th { background:#F6F4F0!important; color:var(--ink3)!important; font-size:11.5px; font-weight:800; letter-spacing:.02em;
+        text-align:right; padding:11px 12px!important; border-bottom:1px solid var(--line)!important; white-space:nowrap; }
+  .content table.mt-table tbody td { padding:11px 12px!important; border-bottom:1px solid var(--line)!important; vertical-align:middle; }
+  .content table.mt-table tbody tr:last-child td { border-bottom:0!important; }
+  .content table.mt-table tbody tr:hover td { background:rgba(62,127,209,.045)!important; }
+  .content table.mt-table tbody tr.is-late td:first-child { box-shadow:inset -4px 0 0 var(--red); }
+  .content table.mt-table tbody tr.st-terminee td { color:var(--ink3); }
+  .mt-table .t-title { font-weight:800; color:var(--ink); text-decoration:none; display:block; max-width:320px; }
+  .mt-table .t-title:hover { color:var(--blue-d); }
+  .mt-table .t-sub { font-size:11px; color:var(--ink3); margin-top:2px; }
+  .mt-table .people { display:flex; flex-wrap:wrap; gap:4px; }
+  .mt-table .prog { display:flex; align-items:center; gap:6px; min-width:110px; font-size:11px; color:var(--ink2); font-weight:700; }
+  .mt-table .acts { display:flex; gap:6px; justify-content:flex-end; }
+  .mt-table .acts form { margin:0; }
+
+  /* Bouton d'actualisation */
+  .mt-refresh { position:fixed; bottom:16px; left:16px; z-index:999; background:rgba(30,76,134,.88); color:#fff; padding:7px 14px;
+        border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; user-select:none; box-shadow:0 6px 18px rgba(30,76,134,.3); }
+
+  /* Responsive */
+  @media (max-width: 1000px) { .mt-stats { grid-template-columns:repeat(3,1fr); } }
+  @media (max-width: 820px) {
+    /* compteurs : une seule rangée qui défile au doigt */
+    .mt-stats { display:flex; overflow-x:auto; gap:8px; padding:2px 2px 6px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+    .mt-stats::-webkit-scrollbar { display:none; }
+    .mt-stat { flex:0 0 auto; min-width:112px; padding:8px 10px; gap:8px; border-radius:14px; }
+    .mt-stat .ic { width:30px; height:30px; font-size:15px; border-radius:9px; } .mt-stat .n { font-size:18px; } .mt-stat .l { font-size:11px; margin-top:2px; }
+    .mt-cols { grid-template-columns:1fr; gap:6px; }
+    .mt-hero h2 { font-size:17px; }
+    .mt-hero .btn-new-task { padding:9px 16px!important; }
+    /* recherche sur une ligne, filtres qui défilent */
+    .mt-search { padding:8px; gap:6px; }
+    .mt-search .q { flex:1 1 0; min-width:0; }
+    .mt-search > .btn { min-height:42px; }
+    .mt-chips { flex-wrap:nowrap; overflow-x:auto; width:100%; scrollbar-width:none; padding-bottom:2px; }
+    .mt-chips::-webkit-scrollbar { display:none; }
+    .mt-chip { padding:6px 12px; }
+    .tk-title { font-size:13.5px; }
+    /* tableau administrateurs → fiches */
+    .content table.mt-table, .mt-table tbody { display:block!important; overflow:visible!important; }
+    .mt-table thead { display:none; }
+    .mt-table tbody tr { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; padding:12px; border-bottom:1px solid var(--line); }
+    .content table.mt-table tbody td { display:block; padding:0!important; border:0!important; }
+    .mt-table td[data-label]::before { content:attr(data-label); display:block; font-size:10px; font-weight:800; color:var(--ink3); margin-bottom:2px; }
+    .mt-table td.c-title, .mt-table td.c-people, .mt-table td.c-acts { grid-column:1 / -1; }
+    .mt-table td.c-acts::before { display:none; }
+    .mt-table td.c-empty { display:none!important; }
+    .mt-table .acts { justify-content:flex-start; }
+    .mt-table .t-title { max-width:none; }
+  }
+  @media (max-width: 400px) { .mt-stat .l { font-size:11px; } }
 </style>
 {% endblock %}
 
 {% block content %}
+{% set admin = is_admin(user.uid) %}
 
-{% if is_admin(user.uid) %}
-<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-  <a href="{{ BASE }}/nouvelle" class="btn btn-primary">＋ مهمة جديدة</a>
-</div>
-{% endif %}
+{# ── Pastille + nom d'un utilisateur (couleur stable selon le nom) ── #}
+{% macro personne(u, nom=True) -%}
+  {%- set u = (u or '').strip() -%}
+  {%- if u -%}
+  <span class="who" title="{{ u }}"><span class="av" style="--a:{{ u|avc }}">{{ u[0] }}</span>{% if nom %}{{ u }}{% endif %}</span>
+  {%- endif -%}
+{%- endmacro %}
 
-<!-- BARRE DE RECHERCHE UNIFIÉE -->
-<form method="GET" class="search-bar">
-  <input type="text" name="q" value="{{ recherche }}"
-         placeholder="🔍 بحث بالعنوان أو الوصف أو المستخدم..."
-         style="flex:2;min-width:180px;padding:7px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit">
-  <select name="statut" style="flex:1;min-width:130px;padding:7px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit">
-    <option value="">📋 كل الحالات</option>
-    {% for k,v in STATUTS.items() %}
-    <option value="{{ k }}" {% if k==filtre_statut %}selected{% endif %}>{{ v.icon }} {{ v.label }}</option>
-    {% endfor %}
-  </select>
-  <button type="submit" class="btn btn-primary" style="padding:7px 16px">بحث</button>
-  {% if recherche or filtre_statut %}
-  <a href="{{ BASE }}/" class="btn btn-secondary" style="padding:7px 16px">✕ مسح</a>
-  {% endif %}
-</form>
-
-<!-- DEUX COLONNES -->
-<div class="two-cols">
-
-  <!-- COLONNE GAUCHE: AFFECTÉES À MOI -->
-  <div>
-    <div class="col-header">
-      <h3>📥 الموجهة إليّ</h3>
-      <span style="background:var(--blue3);color:white;border-radius:10px;padding:1px 10px;font-size:11px;font-weight:700">{{ mes_taches|length }}</span>
-    </div>
-
-    {% if not mes_taches %}
-    <div class="empty-sm">لا توجد مهام 🎉</div>
-    {% endif %}
-
-    {% for t in mes_taches %}
-    {% set pr = PRIORITIES.get(t.priorite, {}) %}
-    {% set st = STATUTS.get(t.statut, {}) %}
-    {% set unread = t.id in notifs_ids %}
-    {% set is_late = t.deadline and t.deadline < today and t.statut != 'terminee' %}
-    <div class="task-row {{ t.priorite }} {% if t.statut=='terminee' %}terminee{% endif %} {% if unread %}unread{% endif %}">
-      {% if unread %}<div class="notif-dot"></div>{% endif %}
-      <div class="task-icon">{{ pr.get('icon','📋') }}</div>
-      <div class="task-body">
-        <div class="task-titre">{{ t.titre }}</div>
-        <div class="task-sub">
-          <span class="tag-sm" style="background:{{ st.get('color','#8C867E') }}22;color:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span>
-          {% if t.deadline %}<span style="color:{% if is_late %}#C25B4A{% else %}var(--text2){% endif %}">📅 {{ t.deadline }}</span>{% endif %}
-          <span>من: {{ t.cree_par }}</span>
-          {% if unread %}<span style="color:#C25B4A;font-weight:700">🔔</span>{% endif %}
-        </div>
-      </div>
-      <div class="task-actions">
-        <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/statut">
-          <select name="statut" class="status-mini" onchange="this.form.submit()">
-            {% for k,v in STATUTS.items() %}
-            <option value="{{ k }}" {% if k==t.statut %}selected{% endif %}>{{ v.icon }}</option>
-            {% endfor %}
-          </select>
-        </form>
-        <a href="{{ BASE }}/tache/{{ t.id }}" class="btn btn-sm {% if unread %}btn-primary{% else %}btn-info{% endif %}">{% if unread %}🔔{% else %}👁️{% endif %}</a>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <!-- COLONNE DROITE: CRÉÉES PAR MOI -->
-  <div>
-    <div class="col-header" style="border-top-color:#34B457">
-      <h3>📤 التي أنشأتها</h3>
-      <span style="background:#34B457;color:white;border-radius:10px;padding:1px 10px;font-size:11px;font-weight:700">{{ taches_creees|length }}</span>
-    </div>
-
-    {% if not taches_creees %}
-    <div class="empty-sm">لم تُنشئ أي مهام بعد</div>
-    {% endif %}
-
-    {% for t in taches_creees %}
-    {% set pr = PRIORITIES.get(t.priorite, {}) %}
-    {% set st = STATUTS.get(t.statut, {}) %}
-    {% set unread = t.id in notifs_ids %}
-    {% set is_late = t.deadline and t.deadline < today and t.statut != 'terminee' %}
-    <div class="task-row {{ t.priorite }} {% if t.statut=='terminee' %}terminee{% endif %} {% if unread %}unread{% endif %}">
-      {% if unread %}<div class="notif-dot"></div>{% endif %}
-      <div class="task-icon">{{ pr.get('icon','📋') }}</div>
-      <div class="task-body">
-        <div class="task-titre">{{ t.titre }}</div>
-        <div class="task-sub">
-          <span class="tag-sm" style="background:{{ st.get('color','#8C867E') }}22;color:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span>
-          {% for u in t.assigne_a.split(',') %}{% if u.strip() %}<span>👤 {{ u.strip() }}</span>{% endif %}{% endfor %}
-          {% if t.deadline %}<span style="color:{% if is_late %}#C25B4A{% else %}var(--text2){% endif %}">📅 {{ t.deadline }}</span>{% endif %}
-          {% if unread %}<span style="color:#C25B4A;font-weight:700">🔔 رد</span>{% endif %}
-        </div>
-      </div>
-      <div class="task-actions">
-        <a href="{{ BASE }}/tache/{{ t.id }}" class="btn btn-sm {% if unread %}btn-primary{% else %}btn-secondary{% endif %}">{% if unread %}🔔{% else %}👁️{% endif %}</a>
-        <a href="{{ BASE }}/tache/{{ t.id }}/edit" class="btn btn-info btn-sm">✏️</a>
-        {% if is_admin(user.uid) %}
-        <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/delete" onsubmit="return confirm('حذف؟')">
-          <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
-        </form>
-        {% endif %}
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-</div>
-
-{% if toutes is not none %}
-<!-- ADMINISTRATEURS : TOUTES LES TÂCHES DE TOUS LES UTILISATEURS -->
-<div style="margin-top:22px">
-  <div class="col-header" style="border-top-color:#B5862B">
-    <h3>👑 مهام باقي المستخدمين (جميع المهام)</h3>
-    <span style="background:#B5862B;color:white;border-radius:10px;padding:1px 10px;font-size:11px;font-weight:700">{{ toutes|length }}</span>
-  </div>
-
-  {% if not toutes %}
-  <div class="empty-sm">لا توجد مهام</div>
-  {% endif %}
-
-  {% for t in toutes %}
+{# ── Fiche d'une tâche ── #}
+{% macro carte(t, mode) %}
   {% set pr = PRIORITIES.get(t.priorite, {}) %}
   {% set st = STATUTS.get(t.statut, {}) %}
-  {% set is_late = t.deadline and t.deadline < today and t.statut != 'terminee' %}
-  <div class="task-row {{ t.priorite }} {% if t.statut=='terminee' %}terminee{% endif %}">
-    <div class="task-icon">{{ pr.get('icon','📋') }}</div>
-    <div class="task-body">
-      <div class="task-titre">{{ t.titre }}</div>
-      <div class="task-sub">
-        <span class="tag-sm" style="background:{{ st.get('color','#8C867E') }}22;color:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span>
-        {% for u in t.assigne_a.split(',') %}{% if u.strip() %}<span>👤 {{ u.strip() }}</span>{% endif %}{% endfor %}
-        {% if t.deadline %}<span style="color:{% if is_late %}#C25B4A{% else %}var(--text2){% endif %}">📅 {{ t.deadline }}</span>{% endif %}
-        <span>من: {{ t.cree_par }}</span>
+  {% set unread = t.id in notifs_ids %}
+  {% set late = t.deadline and t.deadline < today and t.statut != 'terminee' %}
+  {% set ci = t.contexte|ctx_info %}
+  <article class="tk tk-{{ t.priorite }} st-{{ t.statut }}{% if unread %} is-unread{% endif %}">
+    <a class="tk-main" href="{{ BASE }}/tache/{{ t.id }}">
+      <div class="tk-top">
+        <span class="tk-title">{{ t.titre }}</span>
+        {% if unread %}<span class="tk-new">🔔 {% if mode == 'creees' %}رد{% else %}جديد{% endif %}</span>{% endif %}
       </div>
+      <div class="tk-meta">
+        <span class="pill" style="--c:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span>
+        {% if t.priorite == 'haute' %}<span class="pill" style="--c:#C25B4A">🔴 {{ pr.get('label','') }}</span>{% endif %}
+        {% if t.deadline %}
+          <span class="chip {% if late %}chip-late{% endif %}">📅 {{ t.deadline }}{% if late %} · متأخرة{% endif %}</span>
+        {% endif %}
+        {% if mode == 'mes' %}
+          <span class="chip">من</span>{{ personne(t.cree_par) }}
+        {% else %}
+          {% set us = t.assigne_a.split(',')|select|list %}
+          {% if us %}{% for u in us %}{{ personne(u) }}{% endfor %}{% else %}<span class="chip">بدون تعيين</span>{% endif %}
+        {% endif %}
+      </div>
+      {% if ci %}
+      <div class="tk-ctx" title="{{ ci.titre }}">
+        <span class="t">📋 {{ ci.titre }}</span>
+        <span class="bar"><i style="width:{{ ci.pct }}%"></i></span>
+        <span>{{ ci.done }}/{{ ci.total }}</span>
+      </div>
+      {% endif %}
+    </a>
+    <div class="tk-actions">
+      {% if mode == 'mes' %}
+        <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/statut">
+          <select name="statut" class="st-sel" onchange="this.form.submit()" title="تغيير الحالة"
+                  style="color:{{ st.get('color','#5C5852') }}">
+            {% for k,v in STATUTS.items() %}<option value="{{ k }}" {% if k==t.statut %}selected{% endif %}>{{ v.icon }} {{ v.label }}</option>{% endfor %}
+          </select>
+        </form>
+      {% else %}
+        <a href="{{ BASE }}/tache/{{ t.id }}/edit" class="ibtn" title="تعديل">✏️</a>
+        {% if is_admin(user.uid) %}
+        <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/delete" onsubmit="return confirm('حذف هذه المهمة؟')">
+          <button type="submit" class="ibtn del" title="حذف">🗑️</button>
+        </form>
+        {% endif %}
+      {% endif %}
     </div>
-    <div class="task-actions">
-      <a href="{{ BASE }}/tache/{{ t.id }}" class="btn btn-sm btn-info">👁️</a>
-      <a href="{{ BASE }}/tache/{{ t.id }}/edit" class="btn btn-info btn-sm">✏️</a>
-      <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/delete" onsubmit="return confirm('حذف؟')">
-        <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
-      </form>
+  </article>
+{% endmacro %}
+
+<div class="mt">
+
+  <!-- En-tête -->
+  <div class="mt-hero">
+    <div>
+      <h2>👋 مرحباً {{ user.name }}</h2>
+      <p>📅 {{ today }}{% if stats.nonlues %} · 🔔 {{ stats.nonlues }} إشعار جديد{% endif %}</p>
     </div>
+    {% if admin %}
+    <a href="{{ BASE }}/nouvelle" class="btn-new-task">＋ مهمة جديدة</a>
+    {% endif %}
   </div>
-  {% endfor %}
+
+  <!-- Compteurs (cliquables = filtre) -->
+  <div class="mt-stats">
+    <a class="mt-stat {% if not filtre_statut %}on{% endif %}" style="--c:#3E7FD1" href="{{ BASE }}/{% if recherche %}?q={{ recherche|urlencode }}{% endif %}">
+      <span class="ic">📥</span><span><div class="n">{{ stats.mes }}</div><div class="l">الموجهة إليّ</div></span></a>
+    <a class="mt-stat {% if filtre_statut=='en_attente' %}on{% endif %}" style="--c:#718096" href="{{ BASE }}/?statut=en_attente">
+      <span class="ic">⏳</span><span><div class="n">{{ stats.attente }}</div><div class="l">قيد الانتظار</div></span></a>
+    <a class="mt-stat {% if filtre_statut=='en_cours' %}on{% endif %}" style="--c:#2C65AE" href="{{ BASE }}/?statut=en_cours">
+      <span class="ic">🔄</span><span><div class="n">{{ stats.cours }}</div><div class="l">جارية</div></span></a>
+    <a class="mt-stat {% if filtre_statut=='retard' %}on{% endif %}" style="--c:#C25B4A" href="{{ BASE }}/?statut=retard">
+      <span class="ic">⚠️</span><span><div class="n">{{ stats.retard }}</div><div class="l">متأخرة</div></span></a>
+    <a class="mt-stat {% if filtre_statut=='terminee' %}on{% endif %}" style="--c:#2E9E57" href="{{ BASE }}/?statut=terminee">
+      <span class="ic">✅</span><span><div class="n">{{ stats.fini }}</div><div class="l">منجزة</div></span></a>
+  </div>
+
+  <!-- Recherche + filtres -->
+  <form method="GET" class="mt-search">
+    <div class="q"><input type="text" name="q" value="{{ recherche }}" placeholder="بحث بالعنوان أو الوصف أو المستخدم..."></div>
+    {% if filtre_statut %}<input type="hidden" name="statut" value="{{ filtre_statut }}">{% endif %}
+    <button type="submit" class="btn btn-primary" style="border-radius:999px;padding:9px 20px">بحث</button>
+    <div class="mt-chips">
+      {% set qs = ('&q=' ~ recherche|urlencode) if recherche else '' %}
+      <a class="mt-chip {% if not filtre_statut %}on{% endif %}" href="{{ BASE }}/?{{ qs[1:] }}">📋 الكل</a>
+      {% for k,v in STATUTS.items() %}
+      <a class="mt-chip {% if filtre_statut==k %}on{% endif %}" href="{{ BASE }}/?statut={{ k }}{{ qs }}">{{ v.icon }} {{ v.label }}</a>
+      {% endfor %}
+      {% if recherche or filtre_statut %}<a class="mt-chip" href="{{ BASE }}/" style="color:#C25B4A">✕ مسح</a>{% endif %}
+    </div>
+  </form>
+
+  <!-- Deux colonnes -->
+  <div class="mt-cols">
+    <section>
+      <div class="mt-col-h"><h3>📥 الموجهة إليّ</h3><span class="mt-count" style="--c:#3E7FD1">{{ mes_taches|length }}</span></div>
+      {% for t in mes_taches %}{{ carte(t, 'mes') }}{% else %}
+        <div class="mt-empty"><span class="e">🎉</span>{% if recherche or filtre_statut %}لا توجد نتائج{% else %}لا توجد مهام موجهة إليك{% endif %}</div>
+      {% endfor %}
+    </section>
+    <section>
+      <div class="mt-col-h"><h3>📤 التي أنشأتها</h3><span class="mt-count" style="--c:#2E9E57">{{ taches_creees|length }}</span></div>
+      {% for t in taches_creees %}{{ carte(t, 'creees') }}{% else %}
+        <div class="mt-empty"><span class="e">📝</span>{% if recherche or filtre_statut %}لا توجد نتائج{% else %}لم تُنشئ أي مهام بعد{% endif %}</div>
+      {% endfor %}
+    </section>
+  </div>
+
+  {% if toutes is not none %}
+  <!-- Administrateurs : toutes les tâches -->
+  <section class="mt-admin">
+    <div class="mt-col-h"><h3>👑 مهام باقي المستخدمين (جميع المهام)</h3><span class="mt-count" style="--c:#B5862B">{{ toutes|length }}</span></div>
+    {% if not toutes %}
+      <div class="mt-empty"><span class="e">📭</span>لا توجد مهام</div>
+    {% else %}
+    <div class="mt-table-wrap">
+      <table class="mt-table">
+        <thead><tr>
+          <th>المهمة</th><th>المعيّنون</th><th>من</th><th>الحالة</th><th>الأولوية</th><th>الموعد</th><th>التقدم</th><th></th>
+        </tr></thead>
+        <tbody>
+        {% for t in toutes %}
+          {% set pr = PRIORITIES.get(t.priorite, {}) %}
+          {% set st = STATUTS.get(t.statut, {}) %}
+          {% set late = t.deadline and t.deadline < today and t.statut != 'terminee' %}
+          {% set ci = t.contexte|ctx_info %}
+          {% set us = t.assigne_a.split(',')|select|list %}
+          <tr class="st-{{ t.statut }}{% if late %} is-late{% endif %}">
+            <td class="c-title" data-label="المهمة">
+              <a class="t-title" href="{{ BASE }}/tache/{{ t.id }}">{{ t.titre }}</a>
+              <div class="t-sub">🕐 {{ (t.created_at or '')[:16] }}</div>
+            </td>
+            <td class="c-people" data-label="المعيّنون"><div class="people">{% for u in us %}{{ personne(u) }}{% else %}<span class="chip">بدون تعيين</span>{% endfor %}</div></td>
+            <td data-label="من">{{ personne(t.cree_par) }}</td>
+            <td data-label="الحالة"><span class="pill" style="--c:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span></td>
+            <td data-label="الأولوية"><span class="pill" style="--c:{{ pr.get('color','#8C867E') }}">{{ pr.get('icon','') }} {{ pr.get('label','') }}</span></td>
+            <td data-label="الموعد" class="{% if not t.deadline %}c-empty{% endif %}">{% if t.deadline %}<span class="chip {% if late %}chip-late{% endif %}">📅 {{ t.deadline }}</span>{% else %}<span style="color:#B8B2A8">—</span>{% endif %}</td>
+            <td data-label="التقدم" class="{% if not ci %}c-empty{% endif %}">{% if ci %}<span class="prog" title="{{ ci.titre }}"><span class="bar"><i style="width:{{ ci.pct }}%"></i></span>{{ ci.done }}/{{ ci.total }}</span>{% else %}<span style="color:#B8B2A8">—</span>{% endif %}</td>
+            <td class="c-acts"><div class="acts">
+              <a href="{{ BASE }}/tache/{{ t.id }}" class="ibtn" title="عرض">👁️</a>
+              <a href="{{ BASE }}/tache/{{ t.id }}/edit" class="ibtn" title="تعديل">✏️</a>
+              <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/delete" onsubmit="return confirm('حذف هذه المهمة؟')">
+                <button type="submit" class="ibtn del" title="حذف">🗑️</button>
+              </form>
+            </div></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
 </div>
-{% endif %}
+{% endblock %}
+
+{% block extra_script %}
+<script>
+/* Actualisation automatique toutes les 30 s — suspendue pendant la saisie dans la recherche */
+(function () {
+  var reste = 30, timer = null;
+  var b = document.createElement('div');
+  b.className = 'mt-refresh'; b.title = 'انقر للتحديث الآن';
+  b.onclick = function () { clearInterval(timer); location.reload(); };
+  document.body.appendChild(b);
+  function saisie() { var a = document.activeElement; return a && (a.tagName === 'INPUT' || a.tagName === 'SELECT' || a.tagName === 'TEXTAREA'); }
+  function tick() {
+    if (saisie()) { b.textContent = '⏸ التحديث متوقف أثناء الكتابة'; return; }
+    b.textContent = '🔄 تحديث خلال ' + reste + 'ث';
+    if (reste <= 0) { clearInterval(timer); b.textContent = '🔄 جاري التحديث...'; location.reload(); return; }
+    reste--;
+  }
+  tick(); timer = setInterval(tick, 1000);
+})();
+</script>
 {% endblock %}

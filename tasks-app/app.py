@@ -312,6 +312,28 @@ def _fromjson_filter(s):
         return None
 
 
+@app.template_filter('avc')
+def _avatar_color(nom):
+    """Couleur stable de la pastille d'un utilisateur (même nom → même couleur)."""
+    palette = ['#3E7FD1', '#B5862B', '#2E9E57', '#7A6FB0', '#C25B4A', '#1E8C9A', '#8C6A4E']
+    return palette[sum(ord(c) for c in (nom or '')) % len(palette)]
+
+
+@app.template_filter('ctx_info')
+def _ctx_info_filter(s):
+    """Résumé du tableau lié à une tâche : titre, nombre de lignes, lignes « منجز », pourcentage."""
+    d = _fromjson_filter(s)
+    if not isinstance(d, dict) or not d.get('tableau'):
+        return None
+    champs = d.get('champs') or {}
+    tailles = [len(v) if isinstance(v, list) else (1 if v else 0) for v in champs.values()]
+    total = max(tailles) if tailles else 0
+    manjez = d.get('manjez') or []
+    done = sum(1 for i in range(total) if i < len(manjez) and manjez[i])
+    return {'titre': d.get('titre', ''), 'extra': d.get('titre_extra', ''),
+            'total': total, 'done': done, 'pct': int(round(100.0 * done / total)) if total else 0}
+
+
 @app.route('/')
 def index():
     user = get_nc_user()
@@ -354,7 +376,10 @@ def index():
     recherche     = request.args.get('q', '').strip().lower()
 
     def appliquer_filtres(liste):
-        if filtre_statut:
+        if filtre_statut == 'retard':   # tuile « متأخرة » : échéance dépassée et non terminée
+            auj = date.today().isoformat()
+            liste = [t for t in liste if t['deadline'] and t['deadline'] < auj and t['statut'] != 'terminee']
+        elif filtre_statut:
             liste = [t for t in liste if t['statut'] == filtre_statut]
         if recherche:
             liste = [t for t in liste if
@@ -364,6 +389,18 @@ def index():
                      recherche in t['cree_par'].lower()]
         return liste
 
+    # Compteurs (avant filtres) pour les tuiles du haut
+    today_s = date.today().isoformat()
+    stats = {
+        'mes':     len(mes_taches),
+        'attente': sum(1 for t in mes_taches if t['statut'] == 'en_attente'),
+        'cours':   sum(1 for t in mes_taches if t['statut'] == 'en_cours'),
+        'fini':    sum(1 for t in mes_taches if t['statut'] == 'terminee'),
+        'retard':  sum(1 for t in mes_taches if t['deadline'] and t['deadline'] < today_s and t['statut'] != 'terminee'),
+        'creees':  len(taches_creees),
+        'nonlues': sum(1 for t in mes_taches + taches_creees if t['id'] in notifs_ids),
+    }
+
     mes_taches    = appliquer_filtres(mes_taches)
     taches_creees = appliquer_filtres(taches_creees)
     if toutes is not None:
@@ -372,7 +409,7 @@ def index():
 
     return render_template('index.html', user=user, mes_taches=mes_taches,
                            taches_creees=taches_creees, toutes=toutes,
-                           notifs_ids=notifs_ids, vue=vue,
+                           notifs_ids=notifs_ids, vue=vue, stats=stats,
                            filtre_statut=filtre_statut, recherche=recherche)
 
 @app.route('/nouvelle', methods=['GET', 'POST'])
@@ -449,6 +486,9 @@ def update_statut(tid):
                     pass
         conn.commit()
     conn.close()
+    # Depuis la page de détail, on y reste après le changement de statut
+    if request.form.get('retour') == 'detail':
+        return redirect(f"{BASE_PATH}/tache/{tid}")
     return redirect(f"{BASE_PATH}/")
 
 @app.route('/tache/<int:tid>/delete', methods=['POST'])
