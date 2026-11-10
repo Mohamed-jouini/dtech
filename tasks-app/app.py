@@ -18,6 +18,15 @@ NEXTCLOUD_URL = os.environ.get('NEXTCLOUD_URL', 'http://cabinet.mwj-lawyers.com'
 NC_ADMIN_USER = os.environ.get('NC_ADMIN_USER', 'admin')  # Admin principal toujours autorisé
 # Administrateurs par défaut (voient toutes les tâches) ; surchargeable via la variable DEFAULT_ADMINS (séparés par des virgules)
 DEFAULT_ADMINS = [u.strip() for u in os.environ.get('DEFAULT_ADMINS', 'wassef.jlaiel,aziza.kileni').split(',') if u.strip()]
+# Seuls ces comptes (+ l'admin principal NC_ADMIN_USER) voient la section « مهام باقي المستخدمين » ;
+# surchargeable via la variable VOIR_TOUTES (séparés par des virgules)
+VOIR_TOUTES = [u.strip() for u in os.environ.get('VOIR_TOUTES', 'wassef.jlaiel,aziza.kileni').split(',') if u.strip()]
+
+
+def voit_toutes(uid):
+    """Vrai si l'utilisateur voit toutes les tâches de tous les utilisateurs."""
+    uid = (uid or '').lower()
+    return bool(uid) and uid in [u.lower() for u in [NC_ADMIN_USER] + VOIR_TOUTES]
 NC_ADMIN_PASS = os.environ.get('NC_ADMIN_PASS', '')
 UPLOAD_DIR    = os.environ.get('UPLOAD_DIR', '/data/uploads')
 ALLOWED_EXT   = {'pdf','doc','docx','jpg','jpeg','png','txt','xls','xlsx'}
@@ -366,7 +375,8 @@ def index():
     taches_creees = sorted([t for t in all_taches if t['cree_par'] == user['uid'] and user['uid'] not in t['assigne_a'].split(',')], key=sort_key)
     toutes = None
     user_is_admin = is_admin(user['uid'])
-    if user_is_admin:
+    # « مهام باقي المستخدمين » : réservé à la liste VOIR_TOUTES (pas à tous les administrateurs)
+    if voit_toutes(user['uid']):
         toutes = conn.execute("SELECT * FROM taches ORDER BY created_at DESC").fetchall()
     # Notifs non lues
     notifs_ids = set(notifs_map.keys())
@@ -391,12 +401,15 @@ def index():
 
     # Compteurs (avant filtres) pour les tuiles du haut
     today_s = date.today().isoformat()
+    # Administrateurs : les tuiles portent sur TOUTES les tâches ; sinon sur les tâches qui me sont assignées
+    base = list(toutes) if toutes is not None else mes_taches
     stats = {
-        'mes':     len(mes_taches),
-        'attente': sum(1 for t in mes_taches if t['statut'] == 'en_attente'),
-        'cours':   sum(1 for t in mes_taches if t['statut'] == 'en_cours'),
-        'fini':    sum(1 for t in mes_taches if t['statut'] == 'terminee'),
-        'retard':  sum(1 for t in mes_taches if t['deadline'] and t['deadline'] < today_s and t['statut'] != 'terminee'),
+        'scope':   'all' if toutes is not None else 'mes',
+        'mes':     len(base),
+        'attente': sum(1 for t in base if t['statut'] == 'en_attente'),
+        'cours':   sum(1 for t in base if t['statut'] == 'en_cours'),
+        'fini':    sum(1 for t in base if t['statut'] == 'terminee'),
+        'retard':  sum(1 for t in base if t['deadline'] and t['deadline'] < today_s and t['statut'] != 'terminee'),
         'creees':  len(taches_creees),
         'nonlues': sum(1 for t in mes_taches + taches_creees if t['id'] in notifs_ids),
     }

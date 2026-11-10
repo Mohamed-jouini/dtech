@@ -110,6 +110,36 @@
   .mt-refresh { position:fixed; bottom:16px; left:16px; z-index:999; background:rgba(30,76,134,.88); color:#fff; padding:7px 14px;
         border-radius:999px; font-size:12px; font-weight:700; cursor:pointer; user-select:none; box-shadow:0 6px 18px rgba(30,76,134,.3); }
 
+  /* ═══ Ordinateur : tableau de bord ═══ */
+  .content { max-width: 1640px !important; }
+  .mt-empty { display:flex; align-items:center; justify-content:center; gap:10px; padding:16px 14px; }
+  .mt-empty .e { display:inline; font-size:22px; margin:0; }
+  /* pastilles empilées des assignés (tableau) */
+  .pile { display:flex; align-items:center; }
+  .pile .av { width:28px; height:28px; font-size:12px; box-shadow:0 0 0 2px #fff; margin-left:-7px; }
+  .pile .av:last-of-type { margin-left:0; }
+  .pile .av.more { background:#ECE8E1; color:var(--ink2); }
+  .pile .pile-n { margin-right:8px; font-size:12px; font-weight:700; color:var(--ink2); white-space:nowrap; }
+  .mt-table td.c-people .people { display:none; }
+  .mt-table .t-title { max-width:460px; }
+  .mt-table td.c-title { min-width:230px; }
+  @media (min-width: 1100px) {
+    .mt-top { display:grid; grid-template-columns:minmax(250px,300px) 1fr; gap:14px; align-items:stretch; margin-bottom:14px; }
+    .mt-top .mt-hero { margin:0; background:#fff; border-radius:16px; box-shadow:0 4px 16px rgba(72,64,54,.08); border:1px solid var(--line);
+          padding:16px 18px; flex-direction:column; align-items:stretch; justify-content:space-between; gap:12px; }
+    .mt-top .mt-hero .btn-new-task { justify-content:center; }
+    .mt-top .mt-stats { margin:0; }
+    .mt-top .mt-stat { flex-direction:column; align-items:flex-start; justify-content:center; gap:8px; padding:14px 16px; }
+    .mt-top .mt-stat .n { font-size:28px; }
+  }
+  /* très grand écran : administrateurs = mes tâches en colonne latérale, toutes les tâches à côté */
+  @media (min-width: 1500px) {
+    .mt-main.has-admin { display:grid; grid-template-columns:minmax(330px,400px) 1fr; gap:20px; align-items:start; }
+    .mt-main.has-admin .mt-cols { grid-template-columns:1fr; gap:14px; position:sticky; top:calc(var(--haut-nav,40px) + var(--haut-entete,0px) + 12px); }
+    .mt-main.has-admin .mt-admin { margin-top:0; }
+    .mt-main.has-admin .tk-title { font-size:13.5px; }
+  }
+
   /* Responsive */
   @media (max-width: 1000px) { .mt-stats { grid-template-columns:repeat(3,1fr); } }
   @media (max-width: 820px) {
@@ -138,6 +168,8 @@
     .mt-table td.c-title, .mt-table td.c-people, .mt-table td.c-acts { grid-column:1 / -1; }
     .mt-table td.c-acts::before { display:none; }
     .mt-table td.c-empty { display:none!important; }
+    .mt-table td.c-people .pile { display:none; }
+    .mt-table td.c-people .people { display:flex; }
     .mt-table .acts { justify-content:flex-start; }
     .mt-table .t-title { max-width:none; }
   }
@@ -212,6 +244,7 @@
 
 <div class="mt">
 
+  <div class="mt-top">
   <!-- En-tête -->
   <div class="mt-hero">
     <div>
@@ -226,7 +259,7 @@
   <!-- Compteurs (cliquables = filtre) -->
   <div class="mt-stats">
     <a class="mt-stat {% if not filtre_statut %}on{% endif %}" style="--c:#3E7FD1" href="{{ BASE }}/{% if recherche %}?q={{ recherche|urlencode }}{% endif %}">
-      <span class="ic">📥</span><span><div class="n">{{ stats.mes }}</div><div class="l">الموجهة إليّ</div></span></a>
+      <span class="ic">{% if stats.scope == 'all' %}📋{% else %}📥{% endif %}</span><span><div class="n">{{ stats.mes }}</div><div class="l">{% if stats.scope == 'all' %}جميع المهام{% else %}الموجهة إليّ{% endif %}</div></span></a>
     <a class="mt-stat {% if filtre_statut=='en_attente' %}on{% endif %}" style="--c:#718096" href="{{ BASE }}/?statut=en_attente">
       <span class="ic">⏳</span><span><div class="n">{{ stats.attente }}</div><div class="l">قيد الانتظار</div></span></a>
     <a class="mt-stat {% if filtre_statut=='en_cours' %}on{% endif %}" style="--c:#2C65AE" href="{{ BASE }}/?statut=en_cours">
@@ -236,6 +269,7 @@
     <a class="mt-stat {% if filtre_statut=='terminee' %}on{% endif %}" style="--c:#2E9E57" href="{{ BASE }}/?statut=terminee">
       <span class="ic">✅</span><span><div class="n">{{ stats.fini }}</div><div class="l">منجزة</div></span></a>
   </div>
+  </div><!-- /mt-top -->
 
   <!-- Recherche + filtres -->
   <form method="GET" class="mt-search">
@@ -252,6 +286,7 @@
     </div>
   </form>
 
+  <div class="mt-main{% if toutes is not none %} has-admin{% endif %}">
   <!-- Deux colonnes -->
   <div class="mt-cols">
     <section>
@@ -292,7 +327,7 @@
               <a class="t-title" href="{{ BASE }}/tache/{{ t.id }}">{{ t.titre }}</a>
               <div class="t-sub">🕐 {{ (t.created_at or '')[:16] }}</div>
             </td>
-            <td class="c-people" data-label="المعيّنون"><div class="people">{% for u in us %}{{ personne(u) }}{% else %}<span class="chip">بدون تعيين</span>{% endfor %}</div></td>
+            <td class="c-people" data-label="المعيّنون">{% if us %}<div class="pile" title="{{ us|join('، ') }}">{% for u in us[:4] %}<span class="av" style="--a:{{ u|avc }}">{{ u[0] }}</span>{% endfor %}{% if us|length > 4 %}<span class="av more">+{{ us|length - 4 }}</span>{% endif %}<span class="pile-n">{{ us[0] }}{% if us|length > 1 %} +{{ us|length - 1 }}{% endif %}</span></div>{% endif %}<div class="people">{% for u in us %}{{ personne(u) }}{% else %}<span class="chip">بدون تعيين</span>{% endfor %}</div></td>
             <td data-label="من">{{ personne(t.cree_par) }}</td>
             <td data-label="الحالة"><span class="pill" style="--c:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span></td>
             <td data-label="الأولوية"><span class="pill" style="--c:{{ pr.get('color','#8C867E') }}">{{ pr.get('icon','') }} {{ pr.get('label','') }}</span></td>
@@ -313,6 +348,7 @@
     {% endif %}
   </section>
   {% endif %}
+  </div><!-- /mt-main -->
 
 </div>
 {% endblock %}

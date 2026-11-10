@@ -529,7 +529,16 @@ html body table:not(.mt-table):not(.ctx-table):not(.no-design) > tbody tr:hover 
 .stats .stat::after,.stats-bar .stat::after{background:var(--sc)!important}
 .stats .stat .num,.stats-bar .stat .num{font-size:30px!important;color:var(--sc)!important}
 
-.stats .stat:only-child{flex:0 0 auto!important;min-width:220px;max-width:300px}
+/* compteur seul : centré et compact (chiffre + libellé sur une ligne) */
+.stats{justify-content:center}
+.stats .stat:only-child{flex:0 0 auto!important;margin:0 auto!important;display:inline-flex!important;align-items:center;gap:12px;
+  min-width:0!important;max-width:none!important;padding:10px 24px 12px!important;border-radius:999px!important}
+.stats .stat:only-child .num{font-size:26px!important;margin:0!important}
+.stats .stat:only-child .lbl{font-size:13px!important;margin:0!important}
+.stats .stat:only-child::after{left:24px;right:24px;border-radius:3px}
+/* compteur texte des الشكايات (« المجموع : n شكاية ») : centré */
+.container > .stat{display:table!important;margin:0 auto 14px!important;padding:9px 22px!important;border-radius:999px!important;
+  background:#fff!important;border:1px solid var(--d-line)!important;box-shadow:var(--d-shadow)!important}
 .badge,.badge-wait,.badge-done,.badge-type{white-space:nowrap}
 
 /* ---- Tableaux : pastilles de statut et dates (posées par design-v2.js) ---- */
