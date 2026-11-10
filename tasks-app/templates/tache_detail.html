@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}{{ t.titre }}{% endblock %}
+{% block extra_style %}
+<style>
+  .detail-header { background:var(--white); border-radius:10px; box-shadow:var(--shadow); padding:20px; margin-bottom:16px; border-right:5px solid {{ PRIORITIES.get(t.priorite,{}).get('color','#ccc') }}; }
+  .meta-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .tag { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:12px; font-size:12px; font-weight:600; }
+  .comment-box { background:#F7F5F1; border-radius:8px; padding:14px; margin-bottom:10px; }
+  .comment-author { font-size:12px; font-weight:700; color:var(--blue); margin-bottom:4px; }
+  .comment-date { font-size:11px; color:var(--text2); margin-right:8px; }
+  .comment-text { font-size:13px; color:var(--text); line-height:1.6; }
+  .file-item { display:flex; align-items:center; gap:10px; padding:8px 12px; background:#F7F5F1; border-radius:7px; margin-bottom:6px; font-size:13px; }
+  .status-select { padding:8px 12px; border:2px solid var(--border); border-radius:8px; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; background:var(--white); }
+
+  /* CTX-LIGNES */
+  .content .card table td.ctx-cell{padding:11px 10px!important;text-align:center;white-space:normal;word-break:break-word;color:var(--text);font-weight:500}
+  .content .card table tr.ctx-row:nth-child(even) td{background:rgba(238,243,250,.55)!important}
+  .content .card table tr.ctx-row:hover td{background:rgba(62,127,209,.08)!important}
+  .content .card table tr.ctx-row + tr.ctx-row td{border-top:1px solid rgba(120,112,102,.12)!important}
+  .content .card table td.ctx-vide{color:#B8B2A8!important;font-weight:400}
+  .content .card table tr.ctx-row.ctx-done-row td{background:#d8f3dc!important}
+  .content .card table td.ctx-donecell{color:#2E7D4F;font-weight:800;text-align:center}
+  .content .card table th.ctx-doneh{background:#3E7FD1!important;border-color:#3E7FD1!important}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set pr = PRIORITIES.get(t.priorite, {}) %}
+{% set st = STATUTS.get(t.statut, {}) %}
+{% set is_late = t.deadline and t.deadline < today and t.statut != 'terminee' %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+  <a href="{{ BASE }}/" class="btn btn-secondary">⬅ رجوع</a>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="{{ BASE }}/tache/{{ t.id }}/edit" class="btn btn-info">✏️ تعديل المهمة</a>
+    {% if user_is_admin %}
+    <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/delete"
+          onsubmit="return confirm('حذف هذه المهمة؟')" style="display:inline">
+      <button type="submit" class="btn btn-danger">🗑️ حذف</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+    <div style="flex:1">
+      <h2 style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px">
+        {{ pr.get('icon','') }} {{ t.titre }}
+      </h2>
+      {% if t.description %}
+      <p style="font-size:13px;color:var(--text2);line-height:1.6">{{ t.description }}</p>
+      {% endif %}
+    </div>
+    <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/statut">
+      <select name="statut" class="status-select" onchange="this.form.submit()">
+        {% for k,v in STATUTS.items() %}
+        <option value="{{ k }}" {% if k==t.statut %}selected{% endif %}>{{ v.icon }} {{ v.label }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+  <div class="meta-tags">
+    <span class="tag" style="background:{{ st.get('color','#8C867E') }}22;color:{{ st.get('color','#8C867E') }}">
+      {{ st.get('icon','') }} {{ st.get('label','') }}
+    </span>
+    <span class="tag" style="background:#F1EEE9;color:var(--text2)">
+      {{ pr.get('icon','') }} أولوية {{ pr.get('label','') }}
+    </span>
+    {% if t.deadline %}
+    <span class="tag" style="background:{% if is_late %}#fde8e8{% else %}#F1EEE9{% endif %};color:{% if is_late %}var(--red){% else %}var(--text2){% endif %}">
+      📅 {{ t.deadline }}{% if is_late %} ⚠️{% endif %}
+    </span>
+    {% endif %}
+    {% for u in t.assigne_a.split(',') %}
+    <span class="tag" style="background:#F1EEE9;color:var(--text2)">👤 {{ u.strip() }}</span>
+    {% endfor %}
+    <span class="tag" style="background:#F1EEE9;color:var(--text2)">🕐 {{ t.created_at[:16] }}</span>
+  </div>
+</div>
+
+{% set ctx = t.contexte|fromjson %}
+{% if ctx and ctx.tableau %}
+<div class="card" id="ctxCard" style="margin-bottom:16px">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <h2>📋 {{ ctx.titre }}{% if ctx.titre_extra %} — {{ ctx.titre_extra }}{% endif %}</h2>
+    <button type="button" onclick="printCtx()" style="background:#3E7FD1;color:#fff;border:none;border-radius:7px;padding:6px 14px;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap">🖨️ طباعة الجدول</button>
+  </div>
+  <div class="card-body" style="padding:0">
+    <div style="overflow-x:auto">
+      <table style="border-collapse:collapse;font-size:13px;width:100%;table-layout:fixed">
+        <thead>
+          <tr>
+            {% for champ in ctx.champs.keys() %}
+            <th style="padding:9px 10px;font-weight:700;color:#fff;background:#3E7FD1;border:1px solid #3E7FD1;word-break:break-word">{{ champ }}</th>
+            {% endfor %}
+            <th class="ctx-doneh" style="padding:9px 10px;font-weight:700;color:#fff;border:1px solid #2E7D4F;width:56px;word-break:break-word">منجز</th>
+          </tr>
+        </thead>
+        <tbody>{# CTX-LIGNES : une ligne par entree #}
+          {% set ns = namespace(n=1) %}
+          {% for valeur in ctx.champs.values() %}{% if valeur is not string and valeur|length > ns.n %}{% set ns.n = valeur|length %}{% endif %}{% endfor %}
+          {% for i in range(ns.n) %}
+          {% set done = ctx.manjez and i < ctx.manjez|length and ctx.manjez[i] %}
+          <tr class="ctx-row{% if done %} ctx-done-row{% endif %}">
+            {% for valeur in ctx.champs.values() %}
+            {% if valeur is string %}{% set v = valeur if i == 0 else '' %}{% else %}{% set v = valeur[i] if i < valeur|length else '' %}{% endif %}
+            <td class="ctx-cell{% if not v %} ctx-vide{% endif %}">{{ v or '—' }}</td>
+            {% endfor %}
+            <td class="ctx-cell ctx-donecell">{% if done %}✔{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+function printCtx(){
+  var card=document.getElementById('ctxCard'); if(!card) return;
+  var h=card.querySelector('.card-header h2'); var title=h?h.innerText.trim():'';
+  var tbl=card.querySelector('table'); if(!tbl) return;
+  var w=window.open('','_blank','width=1000,height=700');
+  w.document.write('<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>'+title+'</title>'+
+    '<style>@page{size:A4 landscape;margin:0}body{font-family:Arial,Tahoma,sans-serif;direction:rtl;color:#222;margin:0;padding:12mm}'+
+    'h2{font-size:18px;margin:0 0 14px}table{border-collapse:collapse;width:100%;font-size:12px;table-layout:fixed}'+
+    'th{background:#3E7FD1!important;color:#fff!important;border:1px solid #3E7FD1;padding:8px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+    'td{border:1px solid #888;padding:8px;text-align:center;word-break:break-word}</style></head><body>'+
+    '<h2>'+title+'</h2>'+tbl.outerHTML+'</body></html>');
+  w.document.close(); w.focus();
+  setTimeout(function(){ w.print(); }, 300);
+}
+</script>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:1fr 320px;gap:16px">
+
+  <div>
+    <div class="card">
+      <div class="card-header"><h2>💬 التعليقات والردود</h2></div>
+      <div class="card-body">
+        {% if not commentaires %}
+        <div style="text-align:center;color:var(--text2);padding:20px;font-size:13px">لا توجد تعليقات بعد</div>
+        {% endif %}
+        {% for cm in commentaires %}
+        <div class="comment-box">
+          <div>
+            <span class="comment-author">👤 {{ cm.auteur }}</span>
+            <span class="comment-date">{{ cm.created_at[:16] }}</span>
+          </div>
+          <div class="comment-text">{{ cm.contenu }}</div>
+        </div>
+        {% endfor %}
+        <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/commenter" style="margin-top:14px">
+          <div class="form-group">
+            <label>إضافة رد / تعليق</label>
+            <textarea name="contenu" rows="3" placeholder="اكتب ردك هنا... (اختياري)"></textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button type="submit" class="btn btn-primary">💬 إرسال</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    {% if t.fichier %}
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header"><h2>📎 الملف الأصلي</h2></div>
+      <div class="card-body">
+        <a href="{{ BASE }}/fichier/{{ t.fichier }}" target="_blank"
+           class="btn btn-secondary" style="width:100%;justify-content:center">
+          📥 {{ t.fichier_nom }}
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header"><h2>📁 الملفات</h2></div>
+      <div class="card-body">
+        {% for f in fichiers %}
+        <div class="file-item">
+          <span>📄</span>
+          <div style="flex:1">
+            <a href="{{ BASE }}/fichier/{{ f.fichier }}" target="_blank"
+               style="color:var(--blue2);font-weight:600;font-size:12px">{{ f.fichier_nom }}</a>
+            <div style="font-size:11px;color:var(--text2)">{{ f.auteur }} — {{ f.created_at[:16] }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div style="text-align:center;color:var(--text2);padding:10px;font-size:12px">لا توجد ملفات</div>
+        {% endfor %}
+        <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/upload"
+              enctype="multipart/form-data" style="margin-top:12px">
+          <div class="form-group">
+            <label style="font-size:12px">رفع ملف جديد</label>
+            <input type="file" name="fichier"
+                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt,.xls,.xlsx"
+                   style="font-size:12px">
+          </div>
+          <button type="submit" class="btn btn-success" style="width:100%;justify-content:center">
+            📤 رفع الملف
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

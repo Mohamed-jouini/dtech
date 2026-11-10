@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}تعديل — {{ art.titre }}{% endblock %}
+
+{% block extra_style %}
+<style>
+  .form-card { background: var(--white); border-radius: 10px; box-shadow: var(--shadow); max-width: 600px; margin: 0 auto; }
+  .form-card-header { background: rgba(255,255,255,.62); color: var(--white); padding: 16px 24px; border-radius: 10px 10px 0 0; font-size: 16px; font-weight: 700; }
+  .form-body { padding: 24px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+  input[type="text"], input[type="date"], select {
+    padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px;
+    font-family: inherit; font-size: 13px; direction: rtl;
+    background: var(--white); color: var(--text); outline: none;
+  }
+  input:focus, select:focus { border-color: var(--blue-1); box-shadow: 0 0 0 3px rgba(62,127,209,.15); }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid var(--border); margin-top: 20px; }
+  .file-info { background: var(--blue-lighter); border: 1px solid var(--border); border-radius: 7px; padding: 10px 14px; font-size: 13px; color: var(--text-2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-card">
+  <div class="form-card-header">✏️ تعديل بيانات المقال</div>
+  <div class="form-body">
+    <form method="POST">
+      <div class="form-grid">
+
+        <div class="form-group full">
+          <label>الملف (للتبديل، احذف وأعد الرفع)</label>
+          <div class="file-info">📄 {{ art.filename }} ({{ art.ext|upper }}{% if art.nb_pages %} — {{ art.nb_pages }} صفحة{% endif %})</div>
+        </div>
+
+        <div class="form-group full">
+          <label for="titre">العنوان</label>
+          <input type="text" id="titre" name="titre" value="{{ art.titre }}" required>
+        </div>
+
+        <div class="form-group">
+          <label for="categorie">القسم</label>
+          <select id="categorie" name="categorie">
+            {% for cat in CATEGORIES %}
+            <option value="{{ cat }}" {% if art.categorie == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="instance">الجهة القضائية</label>
+          <select id="instance" name="instance">
+            <option value="">— اختر الجهة —</option>
+            {% for inst in INSTANCES %}
+            <option value="{{ inst }}" {% if art.instance == inst %}selected{% endif %}>{{ inst }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="adad">العدد</label>
+          <input type="text" id="adad" name="adad" value="{{ art.adad or '' }}" placeholder="مثال: 12345/2024">
+        </div>
+
+        <div class="form-group">
+          <label for="date_doc">التاريخ</label>
+          <input type="date" id="date_doc" name="date_doc" value="{{ art.date_doc }}" style="direction:ltr;text-align:right">
+        </div>
+
+      </div>
+      <div class="form-actions">
+        <a href="{{ BASE }}/view/{{ art.id }}" class="btn btn-secondary">↩ إلغاء</a>
+        <button type="submit" class="btn btn-success">💾 حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

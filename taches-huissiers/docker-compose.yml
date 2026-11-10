@@ -1,0 +1,31 @@
+services:
+  taches-huissiers:
+    build: .
+    container_name: taches-huissiers
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5003:5003"
+    volumes:
+      - taches-data:/data
+      - huissiers-app_huissiers-data:/huissiers-data
+      - fiche-client-app_fiche-data:/clients-data
+    environment:
+      - DB_PATH=/data/taches.db
+      - HUISSIERS_DB_PATH=/huissiers-data/huissiers.db
+      - CLIENTS_DB_PATH=/clients-data/clients.db
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/taches-huissiers
+      - PORT=5003
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  taches-data:
+  huissiers-app_huissiers-data:
+    external: true
+  fiche-client-app_fiche-data:
+    external: true

@@ -1,0 +1,42 @@
+# ── À ajouter dans ton Caddyfile, DANS le bloc cabinet.mwj-lawyers.com { } ──
+# Même format que tes apps taches-huissiers et archive
+
+handle /tawer-qadaya* {
+    uri strip_prefix /tawer-qadaya
+    reverse_proxy localhost:5005 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Host {host}
+    }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Exemple de Caddyfile complet avec toutes tes apps :
+#
+# cabinet.mwj-lawyers.com {
+#     handle /fiche-client* {
+#         uri strip_prefix /fiche-client
+#         reverse_proxy localhost:5000 { ... }
+#     }
+#     handle /agenda-jalsat* {
+#         uri strip_prefix /agenda-jalsat
+#         reverse_proxy localhost:5001 { ... }
+#     }
+#     handle /taches-huissiers* {
+#         uri strip_prefix /taches-huissiers
+#         reverse_proxy localhost:5003 { ... }
+#     }
+#     handle /archive* {
+#         uri strip_prefix /archive
+#         reverse_proxy localhost:5004 { ... }
+#     }
+#     handle /tawer-qadaya* {          ← NOUVEAU
+#         uri strip_prefix /tawer-qadaya
+#         reverse_proxy localhost:5005 {
+#             header_up X-Real-IP {remote_host}
+#             header_up X-Forwarded-Host {host}
+#         }
+#     }
+#     handle {
+#         reverse_proxy localhost:8080 { ... }   ← Nextcloud
+#     }
+# }

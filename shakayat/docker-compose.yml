@@ -1,0 +1,24 @@
+services:
+  shakayat:
+    build: .
+    container_name: shakayat
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5011:5011"
+    volumes:
+      - shakayat-data:/data
+    environment:
+      - DB_PATH=/data/shakayat.db
+      - UPLOAD_FOLDER=/data/uploads
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/shakayat
+      - PORT=5011
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  shakayat-data:

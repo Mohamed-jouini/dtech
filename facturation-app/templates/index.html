@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon">📋</div>
+    <div><div class="stat-val">{{ stats.devis }}</div><div class="stat-lab">Devis</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🧾</div>
+    <div><div class="stat-val">{{ stats.factures }}</div><div class="stat-lab">Factures</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">↩️</div>
+    <div><div class="stat-val">{{ stats.avoirs }}</div><div class="stat-lab">Avoirs</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">👥</div>
+    <div><div class="stat-val">{{ stats.clients }}</div><div class="stat-lab">Clients</div></div>
+  </div>
+</div>
+
+<!-- Actions rapides -->
+<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <a href="{{ BASE }}/documents/new?type=facture" class="btn btn-success">＋ Nouvelle Facture</a>
+  <a href="{{ BASE }}/documents/new?type=devis"   class="btn btn-primary">＋ Nouveau Devis</a>
+  <a href="{{ BASE }}/documents/new?type=avoir"   class="btn btn-warning">＋ Nouvel Avoir</a>
+  <a href="{{ BASE }}/clients/new"                class="btn btn-secondary">＋ Nouveau Client</a>
+</div>
+
+<!-- Cabinet info -->
+{% if not cabinet.raison_sociale %}
+<div style="background:#fff3cd;border:1px solid #ffeeba;border-radius:8px;padding:14px 18px;margin-bottom:16px;color:#856404">
+  ⚠️ <strong>Paramètres non configurés</strong> — 
+  <a href="{{ BASE }}/parametres" style="color:#856404;font-weight:700">Configurer les informations du cabinet →</a>
+</div>
+{% endif %}
+
+<!-- Derniers documents -->
+<div class="card">
+  <div class="card-header">
+    <h2>📄 Documents récents</h2>
+  </div>
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>N°</th><th>Type</th><th>Client</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for d in docs_recents %}
+        {% set dt = DOC_TYPES.get(d.type, {}) %}
+        <tr>
+          <td><strong>{{ d.numero }}</strong></td>
+          <td>{{ dt.get('icon','') }} {{ dt.get('label','') }}</td>
+          <td>{{ d.client_nom or '—' }}</td>
+          <td>{{ d.date_doc or '—' }}</td>
+          <td><span class="badge badge-{{ d.statut }}">{{ STATUTS.get(d.statut,{}).get('label','') }}</span></td>
+          <td class="actions">
+            <a href="{{ BASE }}/documents/{{ d.id }}" class="btn btn-info btn-sm">Voir</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty">Aucun document</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

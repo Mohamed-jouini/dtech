@@ -1,0 +1,24 @@
+services:
+  archive:
+    build: .
+    container_name: archive-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5004:5004"
+    volumes:
+      - archive-data:/data
+    environment:
+      - DB_PATH=/data/archive.db
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/archive
+      - AUDIT_URL=http://audit-app:5010/api/log
+      - PORT=5004
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  archive-data:

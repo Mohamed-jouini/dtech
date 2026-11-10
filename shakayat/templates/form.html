@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ 'تعديل' if s else 'شكاية جديدة' }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #EFECE6; direction: rtl; }
+  .header { background: rgba(255,255,255,.62); color: white; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 18px; font-weight: 700; }
+  .btn-back { background: rgba(255,255,255,.2); color: white; padding: 7px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; }
+  .container { max-width: 800px; margin: 20px auto; padding: 0 20px 40px; }
+  .card { background: white; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 24px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 13px; font-weight: 700; color: #555; }
+  input, select, textarea { padding: 9px 12px; border: 1px solid #ddd; border-radius: 7px; font-family: inherit; font-size: 13px; }
+  input:focus, textarea:focus { outline: none; border-color: #3E7FD1; box-shadow: 0 0 0 3px rgba(46,117,182,.15); }
+  textarea { resize: vertical; min-height: 80px; }
+  .section-title { font-size: 12px; font-weight: 700; color: #3E7FD1; text-transform: uppercase; letter-spacing: .5px; margin: 18px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #E9F0FA; }
+  .btn-save { background: #3E7FD1; color: white; padding: 10px 24px; border: none; border-radius: 7px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn-save:hover { background: #1E4C86; }
+  .btn-cancel { background: #eee; color: #555; padding: 10px 18px; border-radius: 7px; text-decoration: none; font-size: 13px; font-weight: 600; }
+
+  /* Upload zone */
+  .upload-zone { border: 2px dashed #DDD7CD; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all .2s; background: #F5F3EF; }
+  .upload-zone:hover { border-color: #3E7FD1; background: #E9F0FA; }
+  .upload-zone input[type=file] { display: none; }
+  .upload-zone label { cursor: pointer; color: #3E7FD1; font-weight: 600; font-size: 14px; }
+  .file-list { margin-top: 12px; }
+  .file-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #F5F3EF; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+  .file-item a { color: #3E7FD1; text-decoration: none; font-weight: 600; }
+  .file-item a:hover { text-decoration: underline; }
+  .btn-del-file { background: #fde8e8; color: #C25B4A; border: none; padding: 3px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-family: inherit; }
+  #selected-files { margin-top: 8px; font-size: 12px; color: #666; }
+
+/* ===== THEME AVOCAT v2 =============================================
+   Ajoute dans le style de la page (jamais dans les fenetres d'impression).
+   Les couleurs d'origine sont deja remappees a la source ; ce bloc
+   harmonise les surfaces, la navigation et les en-tetes.
+   ================================================================== */
+:root{
+  --av-blue:#3E7FD1; --av-blue-d:#2C65AE; --av-blue-dd:#1E4C86;
+  --av-ink:#2B2A28; --av-ink-2:#5C5852; --av-ink-3:#8C867E;
+  --av-brd:rgba(255,255,255,.85);
+  --av-line:rgba(120,112,102,.22);
+  --av-glass:rgba(255,255,255,.62);
+  --av-card:rgba(255,255,255,.74);
+  --av-card-2:rgba(255,255,255,.90);
+  --av-shadow:0 6px 24px rgba(72,64,54,.10);
+  --av-shadow-h:0 14px 36px rgba(72,64,54,.18);
+  --av-green:#34B457; --av-sand:#B5862B; --av-red:#C25B4A;
+  --av-ui:'Noto Sans Arabic','Tajawal','Segoe UI',Tahoma,Arial,sans-serif;
+}
+
+/* ---- Page ---- */
+body{
+  background:linear-gradient(155deg,#EFECE6 0%,#DFDAD1 52%,#E9E5DE 100%) fixed!important;
+  color:var(--av-ink);
+  font-family:var(--av-ui)!important;
+}
+
+/* ---- Barre de navigation commune ---- */
+.topnav{
+  position:sticky;top:0;z-index:9999;flex:none;direction:rtl;
+  padding:5px 14px;
+  background:rgba(255,255,255,.76);
+  backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  border-bottom:1px solid var(--av-line);
+}
+.topnav__list{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.topnav a{
+  color:var(--av-ink-2);text-decoration:none;padding:4px 10px;
+  border-radius:999px;font-size:11.5px;font-weight:600;line-height:1.6;
+  transition:background .15s,color .15s;
+}
+.topnav a:hover{background:rgba(255,255,255,.95);color:var(--av-ink)}
+.topnav a.is-home{background:rgba(62,127,209,.16);color:var(--av-blue-d)}
+.topnav a.is-cloud{background:rgba(168,144,106,.18);color:#8A6A2E}
+.topnav a.is-active{background:#fff;color:var(--av-ink);box-shadow:var(--av-shadow)}
+
+/* pages dont le body a une marge de 20px : barre collee aux bords */
+.topnav.topnav--bleed{margin:-20px -20px 20px}
+
+/* menus internes poses dans un en-tete (ex. facturation) */
+.nav-link{color:var(--av-ink-2)!important}
+.nav-link:hover,.nav-link.active{
+  background:rgba(62,127,209,.12)!important;color:var(--av-blue-d)!important;
+}
+
+/* ---- En-tetes (les degrades d'origine sont convertis en verre) ---- */
+.header,.app-header,.month-header,.view-header,.form-card-header,.card-header{
+  background-image:none!important;
+  background-color:var(--av-glass)!important;
+  backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  color:var(--av-ink)!important;
+  border-bottom:1px solid var(--av-line)!important;
+  box-shadow:none!important;
+}
+.header,.app-header{border-radius:0!important}
+.month-header,.view-header,.form-card-header{
+  border:1px solid var(--av-brd)!important;
+  box-shadow:var(--av-shadow)!important;
+}
+.month-header td{background:var(--av-glass)!important;color:var(--av-ink)!important}
+/* textes blancs herites des en-tetes bleus */
+.header :not(a):not(button):not(input):not(select):not(option),
+.app-header :not(a):not(button):not(input):not(select):not(option),
+.month-header :not(a):not(button),.view-header :not(a):not(button),
+.form-card-header :not(a):not(button),.card-header :not(a):not(button){
+  color:var(--av-ink)!important;
+}
+.header a:not([class]),.app-header a:not([class]){color:var(--av-blue-d)!important}
+.month-header .count{
+  background:rgba(62,127,209,.14)!important;color:var(--av-blue-d)!important;
+  border:1px solid rgba(62,127,209,.32);
+}
+/* petits boutons blancs-sur-bleu poses dans les en-tetes */
+.header button:not([class]),.app-header button:not([class]){
+  background:rgba(255,255,255,.9)!important;color:var(--av-ink)!important;
+  border:1px solid var(--av-line)!important;border-radius:999px!important;
+}
+
+/* ---- Cartes ---- */
+.card,.page,.doc-box{
+  background:var(--av-card)!important;
+  border:1px solid var(--av-brd)!important;
+  border-radius:20px!important;
+  box-shadow:var(--av-shadow)!important;
+  backdrop-filter:blur(14px);
+}
+.card .card,.card .doc-box{box-shadow:none!important;backdrop-filter:none}
+.stat{
+  background:var(--av-card)!important;
+  border:1px solid var(--av-brd)!important;
+  border-radius:18px!important;
+  box-shadow:var(--av-shadow)!important;
+  backdrop-filter:blur(14px);
+}
+.global-toolbar,.year-nav,.filters{
+  background:rgba(255,255,255,.50)!important;
+  border-color:var(--av-line)!important;
+  backdrop-filter:blur(14px);
+}
+
+/* navigation d'annee : texte et fleches lisibles sur le fond clair */
+.year-nav{border:1px solid var(--av-brd)!important}
+.year-nav .year-label,.year-nav h2,.year-nav span{color:var(--av-ink)!important}
+.year-nav button{
+  background:#fff!important;color:var(--av-blue-d)!important;
+  border:1px solid var(--av-line)!important;box-shadow:var(--av-shadow);
+}
+.year-nav button:hover{background:var(--av-blue)!important;color:#fff!important}
+
+/* ---- Tableaux ---- */
+table{
+  background:var(--av-card);
+  border-collapse:separate!important;border-spacing:0;
+  border-radius:16px;overflow:hidden;
+  box-shadow:var(--av-shadow);
+}
+thead th,table > tr:first-child th{
+  background:rgba(255,255,255,.60)!important;
+  color:var(--av-ink-2)!important;
+  border-bottom:1px solid var(--av-line)!important;
+}
+td{border-bottom-color:var(--av-line)!important}
+tbody tr:hover td{background:rgba(255,255,255,.65)}
+
+/* ---- Formulaires ---- */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{
+  background:rgba(255,255,255,.94)!important;
+  color:var(--av-ink);
+  border-color:rgba(120,112,102,.28)!important;
+  border-radius:12px!important;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none!important;
+  border-color:var(--av-blue)!important;
+  box-shadow:0 0 0 3px rgba(62,127,209,.20)!important;
+}
+input[type="checkbox"],input[type="radio"]{accent-color:var(--av-blue)}
+
+/* ---- Boutons ---- */
+.btn,.btn-sm,.btn-new,.btn-add,.btn-save,.btn-print,.btn-back,.btn-primary,
+.btn-secondary,.btn-success,.btn-danger,.btn-del,.btn-edit,.btn-info,.btn-remove{
+  border-radius:999px!important;
+}
+.btn-new,.btn-add,.btn-save,.btn-primary{
+  background:var(--av-blue)!important;color:#fff!important;
+  border-color:var(--av-blue)!important;box-shadow:var(--av-shadow);
+}
+.btn-new:hover,.btn-add:hover,.btn-save:hover,.btn-primary:hover{
+  background:var(--av-blue-d)!important;color:#fff!important;
+}
+.btn-print,.btn-back,.btn-secondary{
+  background:rgba(255,255,255,.88)!important;color:var(--av-ink)!important;
+  border:1px solid var(--av-line)!important;
+}
+.btn-print:hover,.btn-back:hover,.btn-secondary:hover{background:#fff!important;color:var(--av-blue-d)!important}
+.btn-danger,.btn-del,.btn-remove{
+  background:rgba(194,91,74,.14)!important;color:var(--av-red)!important;
+  border:1px solid rgba(194,91,74,.38)!important;
+}
+.btn-danger:hover,.btn-del:hover,.btn-remove:hover{background:rgba(194,91,74,.24)!important}
+
+/* boutons d'alerte poses en style inline (ex. آخر آجال) : garder le rouge */
+.btn-new[style*="#C25B4A"],.btn-add[style*="#C25B4A"]{
+  background:var(--av-red)!important;border-color:var(--av-red)!important;color:#fff!important;
+}
+
+/* ---- Impression : aucun effet de verre ---- */
+@media print{
+  .topnav{display:none!important}
+  body{background:#fff!important}
+  .card,.page,.doc-box,.stat,table,.header,.app-header,.month-header{
+    background:#fff!important;box-shadow:none!important;backdrop-filter:none!important;
+  }
+}
+/* ===== fin THEME AVOCAT v2 ===== */
+
+  </style>
+<style id="mobile-responsive-v1">
+/* ===== MOBILE RESPONSIVE v1 ==========================================
+   Bloc commun injecte dans toutes les pages (voir inject_mobile.ps1).
+   N'agit qu'en dessous de 820px : le bureau reste inchange.
+   ===================================================================== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+img,video,canvas,iframe,svg{max-width:100%}
+
+@media (max-width:820px){
+  body{overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+  body[style*="padding"],body[style*="margin"]{padding-left:10px!important;padding-right:10px!important}
+
+  /* ---- Barre des applications : une seule ligne defilante ---- */
+  .topnav{padding:4px 8px}
+  .topnav__list{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;gap:4px}
+  .topnav__list::-webkit-scrollbar{display:none}
+  .topnav a{flex:none;white-space:nowrap;padding:8px 12px;font-size:13px}
+  .topnav.topnav--bleed{margin:-10px -10px 12px}
+
+  /* en-tetes FIXES (sticky) : version compacte, le contenu defile dessous */
+  .entete-fixe{position:sticky!important;max-height:42vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .entete-fixe .header,.entete-fixe .app-header{padding:6px 10px!important;gap:6px}
+  .entete-fixe .toolbar,.entete-fixe .global-toolbar,.entete-fixe .filters{
+    padding:6px 10px!important;gap:6px}
+  .entete-fixe .year-nav{padding:4px 8px!important;gap:6px}
+  .entete-fixe input,.entete-fixe select{min-height:36px;padding-top:5px;padding-bottom:5px}
+  .entete-fixe .btn,.entete-fixe .btn-new,.entete-fixe .btn-print,.entete-fixe button{min-height:34px}
+  .entete-fixe .header h1,.entete-fixe .app-header h1{font-size:15px}
+  .entete-fixe .year-nav h2,.entete-fixe .year-nav .year-label{font-size:15px}
+  .display-mode label{display:none}
+
+  /* ---- En-tetes de page ---- */
+  .header,.app-header,.view-header,.form-card-header{
+    flex-wrap:wrap;gap:8px;padding:10px 12px!important;height:auto!important;min-height:0}
+  .header h1,.app-header h1,.view-header h1{font-size:16px}
+  .header-actions,.header-btns,.view-actions{display:flex;flex-wrap:wrap;gap:6px}
+  .app-header{flex-direction:column;align-items:flex-start!important}
+  .nav-links{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:6px}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-link{white-space:nowrap;flex:none}
+
+  /* ---- Conteneurs ---- */
+  .container{padding-left:10px!important;padding-right:10px!important;margin-top:10px!important}
+  .content{padding:12px 10px!important}
+  .flash-zone{padding:0 10px}
+  .card-header{padding:12px 14px!important;flex-wrap:wrap;gap:8px}
+  .card-body{padding:14px}
+  .month-header{flex-wrap:wrap;gap:8px;padding:10px 12px!important}
+  .month-header h3{font-size:18px}
+
+  /* ---- Barres d'outils / recherche / filtres ---- */
+  .global-toolbar,.toolbar,.filters,.search-zone,.table-header,.filter-bar,.month-toolbar{
+    flex-wrap:wrap;gap:8px;padding-left:10px!important;padding-right:10px!important}
+  .search-global,.search-zone,.scope-toggle{width:100%}
+  .display-mode{flex:1 1 0;min-width:0}
+  .global-toolbar .btn-print{flex:none;padding:6px 14px!important}
+  .search-box,.toolbar input,.month-filter,
+  .filters input,.filters select{width:100%!important;min-width:0!important;flex:1 1 100%}
+  .display-mode select{width:100%!important;min-width:0!important}
+  .search-global{display:flex;flex-wrap:nowrap;gap:6px}
+  .search-global input{flex:1 1 auto;width:auto!important;min-width:0!important}
+  .search-global button{flex:none}
+  .year-nav{flex-wrap:wrap;justify-content:center;padding:8px 10px!important}
+  .year-nav h2,.year-nav .year-label{min-width:0!important;font-size:17px}
+  .scope-btn{flex:1}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab-btn{flex:none;white-space:nowrap}
+  .search-banner{flex-wrap:wrap;gap:8px}
+
+  /* ---- Grilles : tout sur une colonne ---- */
+  .form-grid,.row-2,.row-3,.grid,.info-grid,.two-cols,.ctx-grid,
+  .party-row,[style*="grid-template-columns"]{grid-template-columns:minmax(0,1fr)!important}
+  .form-grid>*,.row-2>*,.row-3>*,.grid>*,.info-grid>*,.two-cols>*,.ctx-grid>*,
+  .party-row>*,[style*="grid-template-columns"]>*{min-width:0}
+  .card,.card-body{min-width:0;max-width:100%}
+  .party-header{display:none!important}
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important}
+  .stat-card{padding:14px!important;gap:10px!important}
+  .stat-icon{width:42px!important;height:42px!important;font-size:20px!important}
+  .stat-val{font-size:22px!important}
+  .column:first-child{border-left:none}
+
+  /* ---- Formulaires : cibles tactiles, pas de zoom iOS ---- */
+  input,select,textarea{font-size:16px!important;max-width:100%;min-height:42px}
+  input[type="checkbox"],input[type="radio"]{min-height:0;width:20px;height:20px}
+  textarea{min-height:90px}
+  .case-number input{width:100%!important}
+  label{font-size:13px}
+  .form-row,.field-row,.detail-row,.info-row{flex-wrap:wrap}
+  .field-label,.info-label,.detail-label{min-width:0!important;flex:1 1 100%}
+  .form-actions,.actions-bar,.btn-row,.form-footer{display:flex;flex-wrap:wrap;gap:8px}
+
+  /* ---- Boutons ---- */
+  .btn,.btn-new,.btn-add,.btn-save,.btn-print,.btn-back,.btn-primary,.btn-secondary,
+  .btn-success,.btn-danger,.btn-warning,.btn-info,.btn-edit,.btn-del{
+    min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .btn-sm{min-height:34px;padding:6px 12px!important}
+  .actions,.actions-cell{white-space:normal!important;flex-wrap:wrap;gap:6px}
+
+  /* ---- Tableaux : defilement horizontal ---- */
+  table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th{padding:8px!important}
+  td{padding:8px!important}
+  .table-wrap{overflow-x:auto}
+
+  /* ---- Fenetres modales ---- */
+  .modal-overlay{align-items:flex-end!important;padding:0}
+  .modal{min-width:0!important;width:100%!important;max-width:100%!important;
+    max-height:92vh;overflow-y:auto;padding:18px!important;border-radius:16px 16px 0 0!important}
+  .total-box,[style*="min-width:2"],[style*="min-width:1"]{min-width:0!important}
+  [style*="width:400px"],[style*="width:250px"],[style*="width:300px"]{width:100%!important}
+
+  /* ---- Divers ---- */
+  .file-item{flex-wrap:wrap}
+  pre{white-space:pre-wrap;word-break:break-word}
+}
+
+@media (max-width:480px){
+  .stats-grid{grid-template-columns:1fr!important}
+  .header h1,.app-header h1{font-size:15px}
+  .btn-new,.header-actions .btn-new{flex:1 1 auto;text-align:center}
+  .month-header h3{font-size:16px}
+  .topnav a{padding:7px 10px;font-size:12.5px}
+}
+/* ===== fin MOBILE RESPONSIVE v1 ===== */
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="topnav__list">
+    <a href="/apps/dashboard/" class="is-home">🏠</a>
+    <a href="/apps/files/?dir=/Affaires%20juridiques" target="_blank" rel="noopener" class="is-cloud">☁️ ملفات القضايا</a>
+    <a href="/fiche-client/">👤 معطيات القضايا</a>
+    <a href="/clients-perso/">🗂️ المعطيات الشخصية</a>
+    <a href="/agenda-jalsat/">📅 أجندة</a>
+    <a href="/huissiers/">⚖️ العدول</a>
+    <a href="/taches-huissiers/">📝 مهام العدول</a>
+    <a href="/tawer-qadaya/">📋 طور القضايا</a>
+    <a href="/mes-taches/">✅ مهامي</a>
+    <a href="/shakayat/" class="is-active">📢 الشكايات</a>
+    <a href="/facturation/">🧾 الفوترة</a>
+    <a href="/archive/">🗄️ الأرشيف</a>
+    <a href="/maktaba-qanouniya/">📚 المكتبة</a>
+    <a href="/audit/">📊 السجل</a>
+  </div>
+</nav>
+
+<div class="header">
+  <h1>{{ '✏️ تعديل الشكاية' if s else '＋ شكاية جديدة' }}</h1>
+  <a href="{{ BASE }}/" class="btn-back">⬅ رجوع</a>
+</div>
+
+<div class="container">
+  <div class="card">
+    <form method="POST" enctype="multipart/form-data">
+
+      <div class="section-title">معلومات الشكاية</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>المنوب</label>
+          <input type="text" name="manoub" value="{{ s.manoub if s else '' }}" placeholder="اسم المنوب">
+        </div>
+        <div class="form-group">
+          <label>الضد</label>
+          <input type="text" name="ded" value="{{ s.ded if s else '' }}" placeholder="اسم الضد">
+        </div>
+        <div class="form-group">
+          <label>المحكمة</label>
+          <input type="text" name="mahkama" value="{{ s.mahkama if s else '' }}" placeholder="المحكمة">
+        </div>
+        <div class="form-group">
+          <label>الجهة المتعهدة</label>
+          <input type="text" name="jiha" value="{{ s.jiha if s else '' }}" placeholder="الجهة المتعهدة">
+        </div>
+        <div class="form-group">
+          <label>عدد الضبط</label>
+          <input type="text" name="adad_dabt" value="{{ s.adad_dabt if s else '' }}" placeholder="عدد الضبط">
+        </div>
+        <div class="form-group">
+          <label>تاريخ الضبط</label>
+          <input type="date" name="tarikh_dabt" value="{{ s.tarikh_dabt if s else '' }}">
+        </div>
+        <div class="form-group full">
+          <label>الموضوع</label>
+          <textarea name="mawdu3">{{ s.mawdu3 if s else '' }}</textarea>
+        </div>
+        <div class="form-group full">
+          <label>الملاحظات</label>
+          <textarea name="mulahazat" rows="3">{{ s.mulahazat if s else '' }}</textarea>
+        </div>
+      </div>
+
+      <div class="section-title">الوثائق</div>
+
+      {% if fichiers %}
+      <div class="file-list">
+        {% for f in fichiers %}
+        <div class="file-item">
+          <span>📎 <a href="{{ BASE }}/fichier/{{ f.id }}/download">{{ f.nom }}</a></span>
+          <form method="POST" action="{{ BASE }}/fichier/{{ f.id }}/delete" style="display:inline"
+                onsubmit="return confirm('حذف هذا الملف؟')">
+            <button type="submit" class="btn-del-file">🗑️ حذف</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" name="fichiers" multiple
+               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx,.zip,.rar"
+               onchange="showSelected(this)">
+        <label>📂 اضغط لإضافة وثائق</label>
+        <div style="font-size:11px;color:#999;margin-top:4px">PDF, Word, Excel, JPG, PNG, ZIP</div>
+        <div id="selected-files"></div>
+      </div>
+
+      <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+        <a href="{{ BASE }}/" class="btn-cancel">↩ إلغاء</a>
+        <button type="submit" class="btn-save">💾 حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function showSelected(input) {
+  const files = Array.from(input.files);
+  const div = document.getElementById('selected-files');
+  if (files.length) {
+    div.innerHTML = files.map(f => `✅ ${f.name}`).join('<br>');
+  } else {
+    div.innerHTML = '';
+  }
+}
+</script>
+<script src="/cabinet-stats/badges.js" defer></script>
+
+<!-- ENTETE-FIXE : titre et barres d'outils fixes sous la barre des apps -->
+<style>
+  .entete-fixe{position:sticky;top:var(--haut-nav,40px);z-index:9000;
+    background:rgba(244,241,236,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    box-shadow:0 6px 18px -12px rgba(60,50,40,.35)}
+  .entete-fixe > *{margin-top:0!important;margin-bottom:0!important}
+  .entete-fixe .header,.entete-fixe .app-header{padding-top:10px!important;padding-bottom:10px!important}
+  .entete-fixe .toolbar,.entete-fixe .global-toolbar,.entete-fixe .filters{padding-top:8px!important;padding-bottom:8px!important}
+  .entete-fixe .year-nav{padding-top:6px!important;padding-bottom:6px!important}
+  tr.day-header,.month-block,[id]{scroll-margin-top:calc(var(--haut-nav,40px) + var(--haut-entete,0px) + 12px)}
+  @media (max-height:620px){.entete-fixe{position:static}}
+  @media print{.entete-fixe{position:static;box-shadow:none;background:#fff}}
+</style>
+<script>
+(function(){
+  var CLASSES = ['header','app-header','toolbar','global-toolbar','year-nav','filters'];
+  function estEntete(el){
+    if (!el || !el.classList) return false;
+    for (var i = 0; i < CLASSES.length; i++) if (el.classList.contains(CLASSES[i])) return true;
+    return false;
+  }
+  function hauteurs(){
+    var n = document.querySelector('body > .topnav'), e = document.querySelector('.entete-fixe');
+    var r = document.documentElement.style;
+    r.setProperty('--haut-nav', (n ? n.offsetHeight : 0) + 'px');
+    r.setProperty('--haut-entete', (e ? e.offsetHeight : 0) + 'px');
+  }
+  function monter(){
+    var nav = document.querySelector('body > .topnav');
+    var bs = getComputedStyle(document.body);
+    /* page deja en mise en page fixe (corps sans defilement) : rien a faire */
+    if (bs.overflowY === 'hidden' || bs.overflow === 'hidden') nav = null;
+    if (nav && !document.querySelector('.entete-fixe')) {
+      var groupe = [], el = nav.nextElementSibling;
+      while (el && (el.tagName === 'SCRIPT' || el.tagName === 'STYLE')) el = el.nextElementSibling;
+      while (estEntete(el)) { groupe.push(el); el = el.nextElementSibling; }
+      if (groupe.length) {
+        var w = document.createElement('div');
+        w.className = 'entete-fixe';
+        groupe[0].parentNode.insertBefore(w, groupe[0]);
+        groupe.forEach(function(g){ w.appendChild(g); });
+      }
+    }
+    hauteurs();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', monter); else monter();
+  window.addEventListener('load', hauteurs);
+  window.addEventListener('resize', hauteurs);
+})();
+</script>
+</body>
+</html>

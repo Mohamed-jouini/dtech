@@ -1,0 +1,33 @@
+# --- Secrets : ne JAMAIS publier (mots de passe SMTP / Nextcloud, cles) ---
+.env
+*.env
+tasks-app/docker-compose.yml
+tawer-notify/
+coolwsd.xml
+traefik.crt
+*.key
+*.pem
+
+# --- Sauvegardes, archives, donnees ---
+*.bak
+*.bak.*
+*.tar
+*.tar.gz
+*.tgz
+*.db
+*.db-wal
+*.db-shm
+*.log
+backup-*/
+old-final/
+*-old/
+*-old.html
+
+# --- Divers ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+.vscode/
+.idea/
+Thumbs.db

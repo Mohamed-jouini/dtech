@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if client else 'Nouveau' }} Client{% endblock %}
+{% block content %}
+<div class="card" style="max-width:700px;margin:0 auto">
+  <div class="card-header">
+    <h2>👥 {{ 'Modifier le client' if client else 'Nouveau client' }}</h2>
+  </div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Raison Sociale *</label>
+          <input type="text" name="raison_sociale" value="{{ client.raison_sociale if client else '' }}" required>
+        </div>
+        <div class="form-group">
+          <label>Matricule Fiscal</label>
+          <input type="text" name="matricule_fiscal" value="{{ client.matricule_fiscal if client else '' }}" placeholder="000000AAA/A/M/000">
+        </div>
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input type="text" name="tel" value="{{ client.tel if client else '' }}">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" value="{{ client.email if client else '' }}">
+        </div>
+        <div class="form-group full">
+          <label>Adresse</label>
+          <textarea name="adresse" rows="2">{{ client.adresse if client else '' }}</textarea>
+        </div>
+        <div class="form-group full">
+          <label>Notes</label>
+          <textarea name="notes" rows="2">{{ client.notes if client else '' }}</textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+        <a href="{{ BASE }}/clients" class="btn btn-secondary">↩ Annuler</a>
+        <button type="submit" class="btn btn-success">💾 Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

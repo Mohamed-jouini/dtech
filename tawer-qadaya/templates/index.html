@@ -1,0 +1,861 @@
+{% extends "base.html" %}
+
+{% block extra_style %}
+<style>
+  /* ── LAYOUT HAUTEUR COMPLETE ── */
+  .index-layout { display: block; }
+  .tabs-zone { margin-bottom: 16px; }
+  .search-zone-outer { }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    background: var(--white);
+    padding: 6px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 10px 8px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: all .18s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--text-2);
+    text-decoration: none;
+  }
+  .tab-btn:hover { background: var(--blue-lighter); color: var(--blue-2); }
+  .tab-btn.active { background: var(--blue-1); color: var(--white); box-shadow: 0 2px 8px rgba(62,127,209,.35); }
+  .tab-badge {
+    background: rgba(255,255,255,.3);
+    border-radius: 20px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .tab-btn:not(.active) .tab-badge { background: var(--blue-light); color: var(--blue-2); }
+
+  /* ── TABLE ── */
+  .table-wrap { background: var(--white); border-radius: 10px; box-shadow: var(--shadow); overflow-x: auto; }
+  .table-header {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--blue-lighter);
+  }
+  .table-header h2 { font-size: 15px; color: var(--blue-3); font-weight: 700; }
+
+  /* ── SEARCH ZONE ── */
+  .search-zone {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .search-box {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 13px;
+    width: 210px;
+    direction: rtl;
+    background: var(--white);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .search-box:focus { border-color: var(--blue-1); box-shadow: 0 0 0 3px rgba(62,127,209,.15); }
+
+  /* navigateur année + filtre mois */
+  .year-nav {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--blue-1); border-radius: var(--radius); padding: 4px 8px;
+  }
+  .year-nav .year-label {
+    color: var(--white); font-weight: 700; font-size: 14px; min-width: 80px; text-align: center;
+  }
+  .year-nav button {
+    background: rgba(255,255,255,.25); border: none; color: var(--white);
+    border-radius: 5px; width: 28px; height: 28px; cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .year-nav button:hover { background: rgba(255,255,255,.45); }
+  .month-filter {
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+    font-family: inherit; font-size: 13px; direction: rtl;
+    background: var(--white); color: var(--text); cursor: pointer; outline: none; min-width: 120px;
+  }
+  .month-filter:focus { border-color: var(--blue-1); }
+
+  /* toggle scope */
+  .scope-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .scope-btn {
+    padding: 6px 12px;
+    background: var(--white);
+    color: var(--text-2);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .scope-btn + .scope-btn { border-right: 1px solid var(--border); }
+  .scope-btn.active { background: var(--blue-1); color: var(--white); }
+  .scope-btn:hover:not(.active) { background: var(--blue-lighter); }
+
+  /* search result info */
+  .search-info {
+    font-size: 12px;
+    color: var(--text-2);
+    padding: 6px 16px;
+    background: #fffbea;
+    border-bottom: 1px solid #fde68a;
+    display: none;
+  }
+  .search-info.visible { display: block; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--blue-2);
+    color: var(--white);
+    padding: 10px 12px;
+    font-weight: 600;
+    font-size: 12px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 2px solid #D5CFC5; transition: background .12s; }
+  tbody tr:hover { background: var(--blue-lighter); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 10px 12px; vertical-align: middle; color: var(--text); }
+  td.v-mid { vertical-align: middle; }
+  td.actions { white-space: nowrap; text-align: center; width: 120px; vertical-align: middle; }
+  td .cell-text {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+  }
+
+  /* طور badge */
+  .tawar-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .tb-jariya  { background: #e3f2fd; color: #1565c0; }
+  .tb-tasrih  { background: #fff8e1; color: #e65100; }
+  .tb-mahkum  { background: #e8f5e9; color: #2e7d32; }
+
+  /* tawar select inline */
+  .tawar-select {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    background: var(--white);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .tawar-select:focus { border-color: var(--blue-1); }
+  .tawar-select.saving { opacity: .6; }
+
+  /* ── Bouton impression ── */
+  .btn-print {
+    padding: 7px 14px; background: var(--white); color: var(--blue-2);
+    border: 1px solid var(--blue-1); border-radius: var(--radius);
+    cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 5px; transition: all .15s;
+  }
+  .btn-print:hover { background: var(--blue-light); }
+
+  /* ── Styles impression ── */
+  @media print {
+    @page { size: landscape; margin: 12mm 10mm; }
+    body { overflow: visible !important; background: white !important; direction: rtl; }
+    .app-header, .tabs, .search-zone-outer, .table-header .search-zone,
+    .table-header div:first-child, .flash-zone,
+    td.actions, th:last-child { display: none !important; }
+    .table-wrap, .table-scroll, .index-layout { display: block; }
+    .content { overflow: visible !important; }
+    table { font-size: 11px; width: 100%; border-collapse: collapse; }
+    th { background: #2C65AE !important; color: white !important; padding: 6px 8px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    td { padding: 5px 8px; border-bottom: 1px solid #ccc; }
+    tr.month-header td { background: #2C65AE !important; color: white !important; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    tr.day-header td { background: #E9F0FA !important; color: #2C65AE !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    tr.no-date-row td { background: #fff0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .psifa { background: #E9F0FA !important; color: #1E4C86 !important; padding: 1px 4px; border-radius: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .print-header { display: block !important; }
+    .tawar-select { border: none; background: none; font-size: 11px; }
+  }
+  .print-header { display: none; }
+
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--text-2); }
+  .empty-state .icon { font-size: 42px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── Ligne sans date ── */
+  tr.no-date-row td { background: #fff0f0 !important; }
+  tr.no-date-row:hover td { background: #ffe0e0 !important; }
+
+  /* ── Ligne urgente (date dans les 48h) ── */
+  tr.urgent-row td { background: #fff0f0 !important; }
+  tr.urgent-row:hover td { background: #ffe0e0 !important; }
+  tr.urgent-row .tarikh-cell {
+    color: #c0392b; font-weight: 700;
+  }
+  tr.urgent-row .tarikh-cell::before { content: "⚠️ "; }
+
+  /* ── Onglet محكوم فيها : jamais de rouge, lignes normales ── */
+  body.tab-mahkum tr.no-date-row td,
+  body.tab-mahkum tr.urgent-row td { background: var(--white) !important; }
+  body.tab-mahkum tr.no-date-row:hover td,
+  body.tab-mahkum tr.urgent-row:hover td { background: #EEF3FA !important; }
+  body.tab-mahkum tr.urgent-row .tarikh-cell { color: inherit !important; font-weight: 400 !important; }
+  body.tab-mahkum tr.urgent-row .tarikh-cell::before { content: "" !important; }
+  @media print {
+    body.tab-mahkum tr.no-date-row td,
+    body.tab-mahkum tr.urgent-row td { background: #fff !important; }
+  }
+
+  /* ── En-tête de mois ── */
+  .month-header td {
+    background: rgba(255,255,255,.62)!important;
+    color: var(--white) !important;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 16px !important;
+    text-align: right;
+  }
+  /* ── En-tête de jour ── */
+  .day-header td {
+    background: #E9F0FA !important;
+    color: var(--blue-2) !important;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px !important;
+    text-align: right;
+    border-top: 1px solid var(--border);
+  }
+  .table-scroll { direction: ltr; }
+  #mainTable { direction: rtl; width: 100%; }
+  #mainTable thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--blue-2);
+  }
+  .parties-cell { display: flex; flex-direction: column; gap: 4px; }
+  .party-entry { display: flex; align-items: center; gap: 5px; font-size: 12px; flex-wrap: wrap; }
+  .party-entry .pnom { font-weight: 600; }
+  .psifa { color: var(--blue-3); font-size: 12px; font-weight: 600; background: var(--blue-light); padding: 2px 8px; border-radius: 10px; white-space: nowrap; display: inline-block; }
+  .party-sep { width: 100%; height: 1px; background: var(--border); margin: 2px 0; }
+  .adad-link { color: var(--blue-2); font-weight: 700; text-decoration: none; border-bottom: 2px solid var(--blue-light); padding-bottom: 1px; }
+  .adad-link:hover { border-color: var(--blue-2); }
+  .adad-link::after { content: ' 📂'; font-size: 11px; opacity: .7; }
+  .adad-link {
+    color: var(--blue-2);
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 2px solid var(--blue-light);
+    transition: border-color .15s;
+    padding-bottom: 1px;
+  }
+  .adad-link:hover { border-color: var(--blue-2); color: var(--blue-3); }
+  .adad-link::after { content: ' 📂'; font-size: 11px; opacity: .7; }
+
+  /* col طور في وضع الكل */
+  .col-tawar { display: none !important; }
+  body.scope-all th.col-tawar,
+  body.scope-all td.col-tawar { display: table-cell !important; }
+</style>
+{% endblock %}
+
+{% block body_class %}page-index{% if active_tab == 'mahkum' %} tab-mahkum{% endif %}{% endblock %}
+{% block content %}
+
+<div class="index-layout">
+<!-- TABS -->
+<div class="tabs-zone">
+<div class="tabs">
+  <a href="{{ BASE }}/?tab=jariya"
+     class="tab-btn {% if active_tab == 'jariya' %}active{% endif %}">
+    🔵 قضايا جارية
+    <span class="tab-badge">{{ counts.get('جارية', 0) }}</span>
+  </a>
+  <a href="{{ BASE }}/?tab=tasrih"
+     class="tab-btn {% if active_tab == 'tasrih' %}active{% endif %}">
+    🟡 تصريح بالحكم
+    <span class="tab-badge">{{ counts.get('تصريح بالحكم', 0) }}</span>
+  </a>
+  <a href="{{ BASE }}/?tab=mahkum"
+     class="tab-btn {% if active_tab == 'mahkum' %}active{% endif %}">
+    🟢 محكوم فيها
+    <span class="tab-badge">{{ counts.get('محكوم فيها', 0) }}</span>
+  </a>
+</div>
+</div><!-- /tabs-zone -->
+
+<!-- TABLE CARD -->
+<div class="table-wrap">
+  <div class="table-header">
+    <h2 id="tableTitle">
+      {% if active_tab == 'jariya' %}🔵 قضايا جارية
+      {% elif active_tab == 'tasrih' %}🟡 تصريح بالحكم
+      {% else %}🟢 محكوم فيها{% endif %}
+    </h2>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button onclick="printTable()" class="btn-print" title="طباعة">
+        🖨️ طباعة
+      </button>
+    </div>
+    <div class="search-zone">
+      <!-- Toggle scope -->
+      <div class="scope-toggle">
+        <button class="scope-btn active" id="btnScopeCurrent" onclick="setScope('current')">هذا الطور</button>
+        <button class="scope-btn"        id="btnScopeAll"     onclick="setScope('all')">🔍 الكل</button>
+      </div>
+      <!-- Navigateur Année -->
+      <div class="year-nav">
+        <button onclick="changeYear(-1)" title="السنة السابقة">→</button>
+        <span class="year-label" id="yearLabel">طور <span id="yearNum">2026</span></span>
+        <button onclick="changeYear(+1)" title="السنة التالية">←</button>
+      </div>
+      <!-- Filtre Mois (sans année) -->
+      <select class="month-filter" id="monthFilter" onchange="applyFilters()">
+        <option value="">جميع الأشهر</option>
+        <option value="01">جانفي</option>
+        <option value="02">فيفري</option>
+        <option value="03">مارس</option>
+        <option value="04">أفريل</option>
+        <option value="05">ماي</option>
+        <option value="06">جوان</option>
+        <option value="07">جويلية</option>
+        <option value="08">أوت</option>
+        <option value="09">سبتمبر</option>
+        <option value="10">أكتوبر</option>
+        <option value="11">نوفمبر</option>
+        <option value="12">ديسمبر</option>
+      </select>
+      <input type="search" class="search-box" id="searchBox"
+             placeholder="بحث…" oninput="onSearch()">
+    </div>
+  </div>
+
+  <!-- نتائج البحث الشامل -->
+  <div class="search-info" id="searchInfo"></div>
+
+  <div class="table-scroll">
+    <div class="print-header" style="text-align:right; margin-bottom:10px; padding-bottom:8px; border-bottom:2px solid #2C65AE;">
+  <h2 style="color:#2C65AE; margin:0; font-size:18px;">⚖️ طور القضايا</h2>
+  <p id="printSubtitle" style="margin:4px 0 0; color:#666; font-size:13px;"></p>
+</div>
+<table id="mainTable">
+      <thead>
+        <tr>
+          <th>المحكمة</th>
+          <th>عدد القضية</th>
+          <th>الدائرة</th>
+          <th>المنوب</th>
+          <th>الصفة</th>
+          <th>المستفيد</th>
+          <th>الضد</th>
+          <th>الصفة</th>
+          <th>التاريخ</th>
+          <th>الموضوع</th>
+          <th>الغرض</th>
+          <th>ملاحظات</th>
+          <th>طور القضية</th>
+          <th class="col-tawar">الطور</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        {% set has_rows = no_date|length > 0 or groups|length > 0 %}
+        {% if has_rows %}
+          {# ── Lignes sans date (fond rouge) ── #}
+          {% for q in no_date %}
+          <tr data-id="{{ q.id }}" data-tawar="{{ q.tawar }}" class="no-date-row"
+              data-search="{{ (q.mahkama ~ ' ' ~ q.adad ~ ' ' ~ q.daira ~ ' ' ~ (q.mandubeen_list|map(attribute='nom')|join(' ')) ~ ' ' ~ (q.mustafid or '') ~ ' ' ~ (q.addad_list|map(attribute='nom')|join(' ')) ~ ' ' ~ q.gharad ~ ' ' ~ q.mulahazat)|lower }}">
+            <td><span class="cell-text" title="{{ q.mahkama }}">{{ q.mahkama }}</span></td>
+            <td>
+              {% if q.adad %}
+                <a href="{{ BASE }}/goto/{{ q.adad }}" target="_blank" class="adad-link">{{ q.adad }}</a>
+              {% else %}—{% endif %}
+            </td>
+            <td><span class="cell-text">{{ q.daira }}</span></td>
+            <td>
+              <div class="parties-cell">
+                {% for p in q.mandubeen_list %}
+                  {% if not loop.first %}<div class="party-sep"></div>{% endif %}
+                  <div class="pnom">{{ p.nom }}</div>
+                {% endfor %}
+              </div>
+            </td>
+            <td style="vertical-align:middle;">
+              <div class="parties-cell">
+                {% for p in q.mandubeen_list %}
+                  {% if not loop.first %}<div class="party-sep" style="margin:4px 0;"></div>{% endif %}
+                  <div>{% if p.sifa %}<span class="psifa">{{ p.sifa }}</span>{% else %}<span style="color:var(--text-2)">—</span>{% endif %}</div>
+                {% endfor %}
+              </div>
+            </td>
+            <td style="vertical-align:middle;"><div class="pnom">{{ q.mustafid or '—' }}</div></td>
+            <td>
+              <div class="parties-cell">
+                {% for p in q.addad_list %}
+                  {% if not loop.first %}<div class="party-sep"></div>{% endif %}
+                  <div class="pnom">{{ p.nom }}</div>
+                {% endfor %}
+              </div>
+            </td>
+            <td style="vertical-align:middle;">
+              <div class="parties-cell">
+                {% for p in q.addad_list %}
+                  {% if not loop.first %}<div class="party-sep" style="margin:4px 0;"></div>{% endif %}
+                  <div>{% if p.sifa %}<span class="psifa">{{ p.sifa }}</span>{% else %}<span style="color:var(--text-2)">—</span>{% endif %}</div>
+                {% endfor %}
+              </div>
+            </td>
+            <td style="white-space:nowrap; vertical-align:middle;">{{ q.tarikh or '—' }}</td>
+            <td><span class="cell-text" title="{{ q.mawdu3 }}">{{ q.mawdu3 or '—' }}</span></td>
+            <td><span class="cell-text" title="{{ q.gharad }}">{{ q.gharad }}</span></td>
+            <td><span class="cell-text" title="{{ q.mulahazat }}">{{ q.mulahazat or '—' }}</span></td>
+            <td>
+              <select class="tawar-select" data-id="{{ q.id }}" onchange="changeTawar(this)">
+                {% for t in TOURS %}
+                  <option value="{{ t }}" {% if t == q.tawar %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="col-tawar">
+              <span class="tawar-badge {{ tc }}">{{ q.tawar }}</span>
+            </td>
+            <td class="actions v-mid">
+              <a href="{{ BASE }}/edit/{{ q.id }}" class="btn btn-edit" title="تعديل">✏️</a>
+              <form method="POST" action="{{ BASE }}/delete/{{ q.id }}" style="display:inline"
+                    onsubmit="return confirm('هل تريد حذف هذه القضية؟')">
+                <button type="submit" class="btn btn-danger" title="حذف">🗑️</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+
+          {# ── Groupes par mois et jour ── #}
+          {% set ns = namespace(count=no_date|length) %}
+          {% for group in groups %}
+          {# En-tête de mois #}
+          <tr class="month-header" data-month="{{ group.label }}" data-year-month="{{ group.mkey }}">
+            <td colspan="16">📅 {{ group.label }} — {{ group.count }} قضية</td>
+          </tr>
+          {% for dg in group.day_groups %}
+          {# En-tête de jour #}
+          <tr class="day-header">
+            <td colspan="16">📆 {{ dg.day_label }}</td>
+          </tr>
+          {% for q in dg.rows %}
+          {% set ns.count = ns.count + 1 %}
+          <tr data-id="{{ q.id }}" data-tawar="{{ q.tawar }}"
+              class="{% if q.tarikh and q.tarikh <= urgent_before %}urgent-row{% endif %}"
+              data-search="{{ (q.mahkama ~ ' ' ~ q.adad ~ ' ' ~ q.daira ~ ' ' ~ (q.mandubeen_list|map(attribute='nom')|join(' ')) ~ ' ' ~ (q.mustafid or '') ~ ' ' ~ (q.addad_list|map(attribute='nom')|join(' ')) ~ ' ' ~ q.gharad ~ ' ' ~ q.mulahazat)|lower }}">
+            <td><span class="cell-text" title="{{ q.mahkama }}">{{ q.mahkama or '—' }}</span></td>
+            <td style="vertical-align:middle">
+              {% if q.adad %}
+                <a href="{{ BASE }}/goto/{{ q.adad }}" target="_blank" class="adad-link">{{ q.adad }}</a>
+              {% else %}—{% endif %}
+            </td>
+            <td><span class="cell-text">{{ q.daira or '—' }}</span></td>
+            <td style="vertical-align:middle">
+              <div class="parties-cell">
+                {% for p in q.mandubeen_list %}{% if not loop.first %}<div class="party-sep"></div>{% endif %}
+                <div class="pnom">{{ p.nom }}</div>{% endfor %}
+              </div>
+            </td>
+            <td style="vertical-align:middle">
+              <div class="parties-cell">
+                {% for p in q.mandubeen_list %}{% if not loop.first %}<div class="party-sep" style="margin:4px 0;"></div>{% endif %}
+                <div>{% if p.sifa %}<span class="psifa">{{ p.sifa }}</span>{% else %}—{% endif %}</div>{% endfor %}
+              </div>
+            </td>
+            <td style="vertical-align:middle"><div class="pnom">{{ q.mustafid or '—' }}</div></td>
+            <td style="vertical-align:middle">
+              <div class="parties-cell">
+                {% for p in q.addad_list %}{% if not loop.first %}<div class="party-sep"></div>{% endif %}
+                <div class="pnom">{{ p.nom }}</div>{% endfor %}
+              </div>
+            </td>
+            <td style="vertical-align:middle">
+              <div class="parties-cell">
+                {% for p in q.addad_list %}{% if not loop.first %}<div class="party-sep" style="margin:4px 0;"></div>{% endif %}
+                <div>{% if p.sifa %}<span class="psifa">{{ p.sifa }}</span>{% else %}—{% endif %}</div>{% endfor %}
+              </div>
+            </td>
+            <td style="white-space:nowrap;vertical-align:middle" class="tarikh-cell">{{ q.tarikh or '—' }}</td>
+            <td><span class="cell-text">{{ q.mawdu3 or '—' }}</span></td>
+            <td><span class="cell-text" title="{{ q.gharad }}">{{ q.gharad or '—' }}</span></td>
+            <td><span class="cell-text" title="{{ q.mulahazat }}">{{ q.mulahazat or '—' }}</span></td>
+            <td style="vertical-align:middle">
+              <select class="tawar-select" data-id="{{ q.id }}" onchange="changeTawar(this)">
+                {% for t in TOURS %}
+                  <option value="{{ t }}" {% if t == q.tawar %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="col-tawar"></td>
+            <td class="actions v-mid">
+              <a href="{{ BASE }}/edit/{{ q.id }}" class="btn btn-edit" title="تعديل">✏️</a>
+              <form method="POST" action="{{ BASE }}/delete/{{ q.id }}" style="display:inline"
+                    onsubmit="return confirm('هل تريد حذف هذه القضية؟')">
+                <button type="submit" class="btn btn-danger" title="حذف">🗑️</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+          {% endfor %}
+        {% else %}
+          <tr id="staticEmpty">
+            <td colspan="16">
+              <div class="empty-state">
+                <div class="icon">📂</div>
+                <p>لا توجد قضايا في هذا الطور</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /index-layout -->
+{% endblock %}
+
+{% block extra_script %}
+<script>
+const BASE          = "{{ BASE }}";
+const TODAY         = "{{ today }}";
+const URGENT_BEFORE = "{{ urgent_before }}";
+
+/* ── Impression ── */
+function printTable() {
+  const tabLabel  = document.querySelector('.tab-btn.active')?.textContent?.trim() || '';
+  const year      = document.getElementById('yearNum')?.textContent || '';
+  const month     = document.getElementById('monthFilter');
+  const monthLabel = month?.options[month.selectedIndex]?.text || 'جميع الأشهر';
+  const dateStr   = new Date().toLocaleDateString('ar-TN');
+
+  // Récupérer le HTML du tableau (lignes visibles uniquement)
+  const table  = document.getElementById('mainTable');
+  const styles = [...document.styleSheets].map(s => {
+    try { return [...s.cssRules].map(r => r.cssText).join('\n'); } catch(e) { return ''; }
+  }).join('\n');
+
+  const win = window.open('', '_blank', 'width=1100,height=800');
+  win.document.write(`<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>طور القضايا — طباعة</title>
+<style>
+@page { size: landscape; margin: 12mm 10mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; background: white; color: #2B2A28; }
+.print-title { padding: 8px 0 10px; border-bottom: 2px solid #2C65AE; margin-bottom: 10px; }
+.print-title h2 { color: #2C65AE; font-size: 17px; }
+.print-title p  { color: #666; font-size: 12px; margin-top: 3px; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+thead th { background: #2C65AE !important; color: white !important; padding: 6px 8px; text-align: right; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+td { padding: 5px 8px; border-bottom: 1px solid #ddd; vertical-align: middle; }
+tr.month-header td { background: #2C65AE !important; color: white !important; font-weight: bold; padding: 7px 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+tr.day-header td { background: #E9F0FA !important; color: #2C65AE !important; font-weight: 700; padding: 5px 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+tr.no-date-row td { background: #fff0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+tr:hover td { background: inherit !important; }
+.psifa { background: #E9F0FA; color: #1E4C86; padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 600; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.adad-link { color: #2C65AE; text-decoration: none; font-weight: 700; }
+.tawar-select, td.actions, th.actions-th { display: none !important; }
+.cell-text { display: inline; }
+.pnom { font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="print-title">
+  <h2>⚖️ طور القضايا</h2>
+  <p>${tabLabel} — ${year} — ${monthLabel} — طباعة بتاريخ: ${dateStr}</p>
+</div>
+${table.outerHTML}
+<script>window.onload = function(){ window.print(); window.onafterprint = function(){ window.close(); }; }<\/script>
+</body></html>`);
+  win.document.close();
+}
+const ACTIVE_TAB = "{{ active_tab }}";
+const TOURS_MAP  = {'جارية':'tb-jariya','تصريح بالحكم':'tb-tasrih','محكوم فيها':'tb-mahkum'};
+const TAB_LABELS = {'jariya':'🔵 قضايا جارية','tasrih':'🟡 تصريح بالحكم','mahkum':'🟢 محكوم فيها'};
+
+let currentScope = 'current';   // 'current' | 'all'
+let allRowsCache = null;         // cache pour éviter double fetch
+
+/* ── Toggle scope ─────────────────────────────────────────────── */
+function setScope(scope) {
+  currentScope = scope;
+  document.getElementById('btnScopeCurrent').classList.toggle('active', scope === 'current');
+  document.getElementById('btnScopeAll').classList.toggle('active', scope === 'all');
+  document.body.classList.toggle('scope-all', scope === 'all');
+
+  if (scope === 'all') {
+    document.getElementById('tableTitle').textContent = '🔍 بحث في كل الأطوار';
+    loadAllRows().then(() => onSearch());
+  } else {
+    document.getElementById('tableTitle').innerHTML =
+      TAB_LABELS[ACTIVE_TAB] || '⚖️ القضايا';
+    restoreOriginalRows();
+    onSearch();
+  }
+}
+
+/* ── Charger toutes les lignes via API ────────────────────────── */
+async function loadAllRows() {
+  if (allRowsCache) return;   // déjà chargé
+  try {
+    const r = await fetch(`${BASE}/api/qadaya?tab=all`);
+    const d = await r.json();
+    allRowsCache = d.rows;
+  } catch(e) {
+    allRowsCache = [];
+  }
+}
+
+/* ── Afficher les lignes globales dans le tableau ─────────────── */
+function renderAllRows(rows) {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="16">
+      <div class="empty-state"><div class="icon">🔎</div><p>لا توجد نتائج</p></div>
+    </td></tr>`;
+    return;
+  }
+
+  function partiesCell(list, field) {
+    if (!list || !list.length) return '—';
+    return list.map((p, i) => {
+      const sep = i > 0 ? '<div class="party-sep"></div>' : '';
+      if (field === 'nom') return sep + `<div class="pnom">${p.nom||'—'}</div>`;
+      return sep + (p.sifa ? `<div><span class="psifa">${p.sifa}</span></div>` : '<div>—</div>');
+    }).join('');
+  }
+
+  rows.forEach((q, i) => {
+    const tc = TOURS_MAP[q.tawar] || 'tb-jariya';
+    const ml = q.mandubeen_list || [];
+    const al = q.addad_list     || [];
+    const searchStr = [
+      q.mahkama, q.adad, q.daira,
+      ml.map(p=>p.nom).join(' '), q.mustafid||'', al.map(p=>p.nom).join(' '),
+      q.mawdu3, q.gharad, q.mulahazat
+    ].join(' ').toLowerCase();
+    const opts = Object.keys(TOURS_MAP).map(t =>
+      `<option value="${t}" ${t===q.tawar?'selected':''}>${t}</option>`).join('');
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr data-id="${q.id}" data-tawar="${q.tawar}" data-search="${searchStr}"
+          class="${q.tarikh && q.tarikh <= URGENT_BEFORE ? 'urgent-row' : ''}">
+        <td><span class="cell-text" title="${q.mahkama}">${q.mahkama||'—'}</span></td>
+        <td style="vertical-align:middle">${q.adad ? '<a href="'+BASE+'/goto/'+encodeURIComponent(q.adad)+'" target="_blank" class="adad-link">'+q.adad+'</a>' : '—'}</td>
+        <td><span class="cell-text">${q.daira||'—'}</span></td>
+        <td style="vertical-align:middle"><div class="parties-cell">${partiesCell(ml,'nom')}</div></td>
+        <td style="vertical-align:middle"><div class="parties-cell">${partiesCell(ml,'sifa')}</div></td>
+        <td style="vertical-align:middle"><div class="pnom">${q.mustafid||'—'}</div></td>
+        <td style="vertical-align:middle"><div class="parties-cell">${partiesCell(al,'nom')}</div></td>
+        <td style="vertical-align:middle"><div class="parties-cell">${partiesCell(al,'sifa')}</div></td>
+        <td style="white-space:nowrap;vertical-align:middle" class="tarikh-cell">${q.tarikh||'—'}</td>
+        <td><span class="cell-text">${q.mawdu3||'—'}</span></td>
+        <td><span class="cell-text">${q.gharad||'—'}</span></td>
+        <td><span class="cell-text">${q.mulahazat||'—'}</span></td>
+        <td style="vertical-align:middle"><select class="tawar-select" data-id="${q.id}" onchange="changeTawar(this)">${opts}</select></td>
+        <td class="col-tawar"><span class="tawar-badge ${tc}">${q.tawar}</span></td>
+        <td class="actions v-mid">
+          <a href="${BASE}/edit/${q.id}" class="btn btn-edit" title="تعديل">✏️</a>
+          <form method="POST" action="${BASE}/delete/${q.id}" style="display:inline"
+                onsubmit="return confirm('هل تريد حذف هذه القضية؟')">
+            <button type="submit" class="btn btn-danger" title="حذف">🗑️</button>
+          </form>
+        </td>
+      </tr>`);
+  });
+}
+
+/* ── Navigateur Année + Filtre Mois ── */
+let currentYear = new Date().getFullYear();
+
+function changeYear(delta) {
+  currentYear += delta;
+  document.getElementById('yearNum').textContent = currentYear;
+  applyFilters();
+}
+
+function applyFilters() {
+  const monthVal = document.getElementById('monthFilter').value; // '01'..'12' ou ''
+  const yr = String(currentYear);
+
+  // Chaque en-tête de mois a data-month="ماي 2026" et data-year-month="2026-05"
+  document.querySelectorAll('tr.month-header').forEach(h => {
+    const ym = h.dataset.yearMonth || ''; // "2026-05"
+    const [hy, hm] = ym.split('-');
+    const showYear  = hy === yr;
+    const showMonth = !monthVal || hm === monthVal;
+    const show = showYear && showMonth;
+    h.style.display = show ? '' : 'none';
+    let next = h.nextElementSibling;
+    while (next && !next.classList.contains('month-header')) {
+      next.style.display = show ? '' : 'none';
+      next = next.nextElementSibling;
+    }
+  });
+  // Lignes sans date : toujours visibles
+  document.querySelectorAll('tr.no-date-row').forEach(r => r.style.display = '');
+}
+
+function buildMonthFilter() {
+  // Détecter l'année la plus récente dans les données pour initialiser
+  let maxYear = currentYear;
+  document.querySelectorAll('tr.month-header[data-year-month]').forEach(h => {
+    const y = parseInt((h.dataset.yearMonth || '').split('-')[0]);
+    if (y > maxYear) maxYear = y;
+  });
+  // garder currentYear sur l'année en cours
+  document.getElementById('yearNum').textContent = currentYear;
+  applyFilters();
+}
+
+/* ── Restaurer les lignes originales (scope = current) ─────────── */
+let originalHTML = null;
+document.addEventListener('DOMContentLoaded', () => {
+  buildMonthFilter();
+  originalHTML = document.getElementById('tableBody').innerHTML;
+});
+function restoreOriginalRows() {
+  if (originalHTML !== null)
+    document.getElementById('tableBody').innerHTML = originalHTML;
+  updateRowNumbers();
+}
+
+/* ── Recherche ─────────────────────────────────────────────────── */
+function onSearch() {
+  const q = document.getElementById('searchBox').value.toLowerCase().trim();
+  const info = document.getElementById('searchInfo');
+
+  if (currentScope === 'all' && allRowsCache) {
+    // filtrer sur le cache complet
+    const filtered = !q ? allRowsCache
+                        : allRowsCache.filter(r =>
+                            [r.mahkama,r.adad,r.daira,
+                             (r.mandubeen_list||[]).map(p=>p.nom).join(' '),
+                             r.mustafid,
+                             (r.addad_list||[]).map(p=>p.nom).join(' '),
+                             r.mawdu3,r.gharad,r.mulahazat]
+                              .join(' ').toLowerCase().includes(q));
+    renderAllRows(filtered);
+    if (q) {
+      info.textContent = `${filtered.length} نتيجة في كل الأطوار`;
+      info.classList.add('visible');
+    } else {
+      info.classList.remove('visible');
+    }
+  } else {
+    // filtrage client-side sur les lignes actuelles
+    const rows = document.querySelectorAll('#tableBody tr[data-search]');
+    let visible = 0;
+    rows.forEach(tr => {
+      const match = !q || tr.dataset.search.includes(q);
+      tr.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    const emp = document.getElementById('staticEmpty');
+    if (emp) emp.style.display = visible === 0 ? '' : 'none';
+
+    if (q && currentScope === 'current') {
+      info.textContent = `${visible} نتيجة في هذا الطور`;
+      info.classList.add('visible');
+    } else {
+      info.classList.remove('visible');
+    }
+    updateRowNumbers();
+  }
+}
+
+/* ── Renuméroter les lignes visibles ────────────────────────────── */
+function updateRowNumbers() {
+  let n = 1;
+  document.querySelectorAll('#tableBody tr[data-id]').forEach(tr => {
+    if (tr.style.display !== 'none') {
+      const cell = tr.querySelector('.row-num');
+      if (cell) cell.textContent = n++;
+    }
+  });
+}
+
+/* ── Changer طور القضية → AJAX ───────────────────────────────── */
+async function changeTawar(sel) {
+  const id    = sel.dataset.id;
+  const tawar = sel.value;
+  sel.classList.add('saving');
+  try {
+    const r = await fetch(`${BASE}/api/tawar/${id}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({tawar})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      if (currentScope === 'all') {
+        // màj cache et re-render
+        allRowsCache = null;
+        await loadAllRows();
+        onSearch();
+      } else {
+        const row = sel.closest('tr');
+        row.style.transition = 'opacity .3s, transform .3s';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(30px)';
+        setTimeout(() => window.location.href = `${BASE}/?tab=${d.tab}`, 350);
+      }
+    }
+  } catch(e) {
+    sel.classList.remove('saving');
+    alert('حدث خطأ أثناء التحديث');
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Exercices Comptables{% endblock %}
+{% block extra_style %}
+<style>
+  .ex-card { background:var(--white); border-radius:10px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:12px; border-left:4px solid var(--border); }
+  .ex-card.actif { border-left-color:var(--green); }
+  .ex-card-body { padding:16px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .ex-year { font-size:28px; font-weight:700; color:var(--blue-2); min-width:70px; }
+  .ex-info { flex:1; }
+  .ex-libelle { font-size:15px; font-weight:600; color:var(--text); }
+  .ex-dates  { font-size:12px; color:var(--text-2); margin-top:3px; }
+  .ex-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .badge-actif { background:#d4edda; color:#155724; padding:3px 12px; border-radius:12px; font-size:12px; font-weight:700; }
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:1000; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:white; border-radius:12px; padding:28px; min-width:460px; max-width:580px; width:100%; box-shadow:0 8px 32px rgba(0,0,0,.2); }
+  .modal h3 { font-size:17px; color:var(--blue-3); margin-bottom:20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <h2 style="font-size:18px;color:var(--blue-3)">📅 Exercices Comptables</h2>
+  <button onclick="document.getElementById('modalNew').classList.add('open')" class="btn btn-primary">＋ Nouvel Exercice</button>
+</div>
+
+{% if not exercices %}
+<div class="card">
+  <div class="card-body" style="text-align:center;padding:40px;color:var(--text-2)">
+    Aucun exercice créé —
+    <button onclick="document.getElementById('modalNew').classList.add('open')"
+            style="background:none;border:none;color:var(--blue-1);cursor:pointer;font-size:13px;font-weight:600">Créer le premier</button>
+  </div>
+</div>
+{% endif %}
+
+{% for ex in exercices %}
+<div class="ex-card {% if ex.actif %}actif{% endif %}">
+  <div class="ex-card-body">
+    <div class="ex-year">{{ ex.annee }}</div>
+    <div class="ex-info">
+      <div class="ex-libelle">
+        {{ ex.libelle }}
+        {% if ex.actif %}<span class="badge-actif">✅ Exercice courant</span>{% endif %}
+      </div>
+      <div class="ex-dates">
+        {% if ex.date_debut or ex.date_fin %}
+          📆 {{ ex.date_debut | date_fr }} → {{ ex.date_fin | date_fr }}
+        {% endif %}
+        &nbsp;·&nbsp; Début N°: <strong>{{ ex.debut_num or 1 }}</strong>
+        &nbsp;·&nbsp; {{ ex.nb_docs }} document(s)
+      </div>
+    </div>
+    <div class="ex-actions">
+      {% if not ex.actif %}
+      <form method="POST" action="{{ BASE }}/exercices/{{ ex.id }}/activer" style="display:inline">
+        <button type="submit" class="btn btn-success btn-sm">▶ Activer</button>
+      </form>
+      {% endif %}
+      <button onclick="openEdit({{ ex.id }}, '{{ ex.libelle }}', '{{ ex.date_debut }}', '{{ ex.date_fin }}', {{ ex.debut_num or 1 }})"
+              class="btn btn-info btn-sm">✏️ Modifier</button>
+      <form method="POST" action="{{ BASE }}/exercices/{{ ex.id }}/delete" style="display:inline"
+            onsubmit="return confirm('Supprimer l\'exercice {{ ex.annee }} ?{% if ex.nb_docs > 0 %} Attention: {{ ex.nb_docs }} document(s) seront orphelins.{% endif %}')">
+        <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ── MODAL NOUVEL EXERCICE ── -->
+<div class="modal-overlay" id="modalNew" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <h3>📅 Nouvel Exercice</h3>
+    <form method="POST" action="{{ BASE }}/exercices/new">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Année *</label>
+          <input type="text" name="annee" placeholder="2026" maxlength="4" pattern="\d{4}" required autofocus
+                 style="font-size:22px;font-weight:700;text-align:center">
+        </div>
+        <div class="form-group">
+          <label>Libellé</label>
+          <input type="text" name="libelle" placeholder="Exercice 2026">
+        </div>
+        <div class="form-group">
+          <label>🔢 Premier numéro (Facture, Devis, Avoir)</label>
+          <input type="number" name="debut_num" value="1" min="1" placeholder="1"
+                 style="font-size:18px;font-weight:700">
+          <small style="color:var(--text-2);font-size:11px">
+            Ex: 87 → FA-2026-0087, 001 → FA-2026-0001
+          </small>
+        </div>
+        <div class="form-group">
+          <label>Date de début</label>
+          <input type="date" name="date_debut" style="direction:ltr">
+        </div>
+        <div class="form-group">
+          <label>Date de fin</label>
+          <input type="date" name="date_fin" style="direction:ltr">
+        </div>
+        <div class="form-group full">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" name="actif" style="width:auto">
+            Définir comme exercice courant
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+        <button type="button" onclick="document.getElementById('modalNew').classList.remove('open')"
+                class="btn btn-secondary">Annuler</button>
+        <button type="submit" class="btn btn-success">💾 Créer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── MODAL MODIFIER ── -->
+<div class="modal-overlay" id="modalEdit" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <h3>✏️ Modifier l'exercice</h3>
+    <form method="POST" id="editForm" action="">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Libellé</label>
+          <input type="text" name="libelle" id="editLibelle">
+        </div>
+        <div class="form-group">
+          <label>🔢 Premier numéro</label>
+          <input type="number" name="debut_num" id="editDebutNum" min="1"
+                 style="font-size:18px;font-weight:700">
+          <small style="color:var(--text-2);font-size:11px">Numéro de départ des documents</small>
+        </div>
+        <div class="form-group">
+          <label>Date de début</label>
+          <input type="date" name="date_debut" id="editDebut" style="direction:ltr">
+        </div>
+        <div class="form-group">
+          <label>Date de fin</label>
+          <input type="date" name="date_fin" id="editFin" style="direction:ltr">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+        <button type="button" onclick="document.getElementById('modalEdit').classList.remove('open')"
+                class="btn btn-secondary">Annuler</button>
+        <button type="submit" class="btn btn-success">💾 Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+function openEdit(id, libelle, debut, fin, debutNum) {
+  document.getElementById('editForm').action = '{{ BASE }}/exercices/' + id + '/edit';
+  document.getElementById('editLibelle').value  = libelle;
+  document.getElementById('editDebut').value    = debut;
+  document.getElementById('editFin').value      = fin;
+  document.getElementById('editDebutNum').value = debutNum || 1;
+  document.getElementById('modalEdit').classList.add('open');
+}
+</script>
+{% endblock %}

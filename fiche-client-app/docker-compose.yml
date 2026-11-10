@@ -1,0 +1,28 @@
+services:
+  fiche-client:
+    build: .
+    container_name: fiche-client
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - fiche-data:/data
+      - agenda-jalsat_jalsat-data:/jalsat-data
+    environment:
+      - AUDIT_URL=http://audit-app:5010/api/log
+      - DB_PATH=/data/clients.db
+      - JALSAT_DB_PATH=/jalsat-data/jalsat.db
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/fiche-client
+      - AGENDA_BASE=/agenda-jalsat
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  fiche-data:
+  agenda-jalsat_jalsat-data:
+    external: true

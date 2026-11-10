@@ -1,0 +1,24 @@
+services:
+  huissiers:
+    build: .
+    container_name: huissiers-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5002:5002"
+    volumes:
+      - huissiers-data:/data
+    environment:
+      - DB_PATH=/data/huissiers.db
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/huissiers
+      - AUDIT_URL=http://audit-app:5010/api/log
+      - PORT=5002
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  huissiers-data:

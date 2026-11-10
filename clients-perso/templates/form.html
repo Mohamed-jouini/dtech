@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ 'تعديل' if client else 'ملف جديد' }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:700px;margin:0 auto">
+  <div class="card-header">
+    <h2>{{ '✏️ تعديل الملف' if client else '＋ ملف جديد' }}</h2>
+  </div>
+  <div class="card-body">
+    <form method="POST">
+
+      <!-- ══ المنوب ══ -->
+      <div class="section-label">👤 المنوب</div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>الهوية *</label>
+          <input type="text" name="houwiya" value="{{ client.houwiya if client else '' }}"
+                 placeholder="الاسم الكامل للمنوب" required>
+        </div>
+        <div class="form-group">
+          <label>رقم الهوية</label>
+          <input type="text" name="num_houwiya" value="{{ client.num_houwiya if client else '' }}"
+                 placeholder="رقم بطاقة الهوية">
+        </div>
+        <div class="form-group">
+          <label>الهاتف</label>
+          <input type="tel" name="telephone" value="{{ client.telephone if client else '' }}"
+                 placeholder="+216 XX XXX XXX" style="direction:ltr">
+        </div>
+        <div class="form-group full">
+          <label>العنوان</label>
+          <input type="text" name="adresse" value="{{ client.adresse if client else '' }}"
+                 placeholder="العنوان الكامل">
+        </div>
+        <div class="form-group full">
+          <label>البريد الإلكتروني</label>
+          <input type="email" name="email" value="{{ client.email if client else '' }}"
+                 placeholder="email@example.com" style="direction:ltr">
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- ══ جهة الاتصال 1 ══ -->
+      <div class="section-label">📞 جهة الاتصال 1</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>الهوية</label>
+          <input type="text" name="contact1_nom" value="{{ client.contact1_nom if client else '' }}"
+                 placeholder="الاسم الكامل">
+        </div>
+        <div class="form-group">
+          <label>الهاتف</label>
+          <input type="tel" name="contact1_tel" value="{{ client.contact1_tel if client else '' }}"
+                 placeholder="+216 XX XXX XXX" style="direction:ltr">
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- ══ جهة الاتصال 2 ══ -->
+      <div class="section-label">📞 جهة الاتصال 2</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>الهوية</label>
+          <input type="text" name="contact2_nom" value="{{ client.contact2_nom if client else '' }}"
+                 placeholder="الاسم الكامل">
+        </div>
+        <div class="form-group">
+          <label>الهاتف</label>
+          <input type="tel" name="contact2_tel" value="{{ client.contact2_tel if client else '' }}"
+                 placeholder="+216 XX XXX XXX" style="direction:ltr">
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- ══ جهة الاتصال 3 ══ -->
+      <div class="section-label">📞 جهة الاتصال 3</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>الهوية</label>
+          <input type="text" name="contact3_nom" value="{{ client.contact3_nom if client else '' }}"
+                 placeholder="الاسم الكامل">
+        </div>
+        <div class="form-group">
+          <label>الهاتف</label>
+          <input type="tel" name="contact3_tel" value="{{ client.contact3_tel if client else '' }}"
+                 placeholder="+216 XX XXX XXX" style="direction:ltr">
+        </div>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- ══ Liaison fiche-client ══ -->
+      <div class="section-label">🔗 ربط بملف المنوب</div>
+      <div class="form-group">
+        <label>رقم الملف في تطبيق "ملف المنوب" (اختياري)</label>
+        <input type="text" name="fiche_client_id"
+               value="{{ client.fiche_client_id if client else '' }}"
+               placeholder="رقم الحريف في تطبيق fiche-client">
+        <small style="color:var(--text2);font-size:11px">أدخل الرقم للربط التلقائي مع ملف المنوب</small>
+      </div>
+
+      <div class="form-group">
+        <label>ملاحظات</label>
+        <textarea name="notes" rows="3" placeholder="ملاحظات إضافية...">{{ client.notes if client else '' }}</textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+        <a href="{{ BASE }}/" class="btn btn-secondary">↩ إلغاء</a>
+        <button type="submit" class="btn btn-success">💾 حفظ</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

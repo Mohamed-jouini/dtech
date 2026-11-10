@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}رفع مقال — المكتبة القانونية{% endblock %}
+
+{% block extra_style %}
+<style>
+  .form-card { background: var(--white); border-radius: 10px; box-shadow: var(--shadow); max-width: 700px; margin: 0 auto; }
+  .form-card-header { background: rgba(255,255,255,.62); color: var(--white); padding: 16px 24px; border-radius: 10px 10px 0 0; font-size: 16px; font-weight: 700; }
+  .form-body { padding: 24px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+  input[type="text"], input[type="date"], select {
+    padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px;
+    font-family: inherit; font-size: 13px; direction: rtl;
+    background: var(--white); color: var(--text); outline: none; transition: border-color .15s;
+  }
+  input:focus, select:focus { border-color: var(--blue-1); box-shadow: 0 0 0 3px rgba(62,127,209,.15); }
+
+  /* Zone de dépôt fichier */
+  .upload-zone {
+    border: 2px dashed var(--blue-1); border-radius: 10px; padding: 40px 20px;
+    text-align: center; cursor: pointer; transition: all .2s; background: var(--blue-lighter);
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--blue-2); background: var(--blue-light); }
+  .upload-zone .icon { font-size: 48px; margin-bottom: 10px; }
+  .upload-zone p { color: var(--text-2); font-size: 14px; margin: 4px 0; }
+  .upload-zone .hint { font-size: 12px; color: #A39D94; }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .file-chosen { margin-top: 10px; padding: 8px 12px; background: var(--white); border-radius: 6px; font-size: 13px; color: var(--blue-2); font-weight: 600; display: none; }
+
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid var(--border); margin-top: 20px; }
+  .section-label { grid-column: 1/-1; font-size: 12px; font-weight: 700; color: var(--blue-2); padding-bottom: 4px; border-bottom: 2px solid var(--blue-light); }
+
+  .ocr-info { background: #E9F0FA; border: 1px solid #D6E3F4; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #0c5460; margin-top: 16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-card">
+  <div class="form-card-header">📤 رفع مقال قانوني جديد</div>
+  <div class="form-body">
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-grid">
+
+        <div class="section-label">بيانات المقال</div>
+
+        <div class="form-group full">
+          <label for="titre">عنوان المقال <span style="color:var(--red)">*</span></label>
+          <input type="text" id="titre" name="titre" placeholder="مثال: قرار تعقيبي في الطلاق" required>
+        </div>
+
+        <div class="form-group">
+          <label for="categorie">القسم</label>
+          <select id="categorie" name="categorie">
+            {% for cat in CATEGORIES %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="instance">الجهة القضائية</label>
+          <select id="instance" name="instance">
+            <option value="">— اختر الجهة —</option>
+            {% for inst in INSTANCES %}
+            <option value="{{ inst }}">{{ inst }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="adad">العدد</label>
+          <input type="text" id="adad" name="adad" placeholder="مثال: 12345/2024">
+        </div>
+
+        <div class="form-group">
+          <label for="date_doc">التاريخ</label>
+          <input type="date" id="date_doc" name="date_doc" style="direction:ltr;text-align:right">
+        </div>
+
+        <div class="form-group full">
+          <label>الملف (PDF أو صورة)</label>
+          <div class="upload-zone" id="uploadZone">
+            <div class="icon">📂</div>
+            <p>اسحب الملف هنا أو انقر للاختيار</p>
+            <p class="hint">PDF، PNG، JPG، TIFF — حجم أقصى 50 ميغا</p>
+            <input type="file" name="fichier" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.bmp"
+                   onchange="onFileSelected(this)" required>
+          </div>
+          <div class="file-chosen" id="fileChosen">📄 <span id="fileName"></span></div>
+        </div>
+
+      </div>
+
+      <div class="ocr-info">
+        🔍 <strong>OCR تلقائي :</strong> بعد الرفع، سيتم تحليل النص من الوثيقة تلقائياً باللغة العربية (Tesseract) لتمكين البحث الكامل داخل المقالات.
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ BASE }}/" class="btn btn-secondary">↩ إلغاء</a>
+        <button type="submit" class="btn btn-success">📤 رفع المقال</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+function onFileSelected(input) {
+  const fc = document.getElementById('fileChosen');
+  const fn = document.getElementById('fileName');
+  if (input.files.length) {
+    fn.textContent = input.files[0].name;
+    fc.style.display = 'block';
+  }
+}
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag');
+  const fi = document.getElementById('fileInput');
+  fi.files = e.dataTransfer.files;
+  onFileSelected(fi);
+});
+</script>
+{% endblock %}

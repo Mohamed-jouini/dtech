@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_self">
+  <title>طباعة ملف</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f0f2f5; padding: 20px; direction: rtl; }
+    .page { background: #fff; max-width: 900px; margin: 0 auto; border-radius: 10px; box-shadow: 0 2px 20px rgba(0,0,0,0.08); overflow: hidden; }
+    .header { background: linear-gradient(135deg, #2c7be5, #1a5fc4); color: white; text-align: center; padding: 16px; }
+    .header h1 { font-size: 18px; }
+    .case-num { text-align: center; padding: 8px; background: #f8f9fa; font-size: 14px; font-weight: bold; color: #1a5fc4; border-bottom: 1px solid #e0e0e0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .column { padding: 16px; }
+    .column:first-child { border-left: 1px solid #e0e0e0; }
+    .section-title { margin: 12px 0 6px; padding: 5px 10px; background: #e8f0fe; border-radius: 4px; border-right: 3px solid #2c7be5; color: #1a5fc4; font-size: 12px; font-weight: bold; }
+    .section-title:first-child { margin-top: 0; }
+    .row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+    .row .lbl { color: #888; }
+    .row .val { color: #333; font-weight: 500; }
+    .sifa { display: inline-block; background: #2c7be5; color: white; padding: 1px 8px; border-radius: 10px; font-size: 11px; }
+    .footer { text-align: center; padding: 8px; font-size: 10px; color: #999; }
+    .no-print { text-align: center; margin-bottom: 15px; }
+    .no-print button, .no-print a { background: #2c7be5; color: white; border: none; padding: 9px 24px; border-radius: 6px; font-size: 13px; cursor: pointer; text-decoration: none; margin: 0 4px; }
+    @media print { body { background: white; padding: 0; } .page { box-shadow: none; } .no-print { display: none !important; } @page { size: A4; margin: 8mm; } }
+  </style>
+<style id="mobile-responsive-v1">
+/* ===== MOBILE (pages imprimables : factures/devis PDF, fiche a imprimer) =====
+   Uniquement a l'ecran sur petit telephone : l'impression et le rendu A4 ne changent pas. */
+@media screen and (max-width:700px){
+  html{-webkit-text-size-adjust:100%}
+  body{padding:56px 10px 16px!important;overflow-x:hidden}
+  .no-print{padding-top:0}
+  body > .no-print:first-child{padding:0}
+  .btn-print{top:8px!important;min-height:40px}
+  .page-header{flex-direction:column;gap:12px}
+  .header-right{flex-wrap:wrap;width:100%;gap:8px}
+  .doc-box{flex:1 1 90px;min-width:0!important}
+  .doc-box-title,.doc-box-value{padding-left:8px;padding-right:8px}
+  .parties{grid-template-columns:1fr!important;gap:14px}
+  .lignes-table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .lignes-table td:first-child,.lignes-table th:first-child{min-width:150px}
+  .totaux-section{justify-content:stretch}
+  .totaux-box{min-width:0!important;width:100%}
+  .doc-body-wrapper{padding-bottom:0}
+  .doc-footer{position:static!important;flex-direction:column;align-items:flex-start;padding:10px 12px!important;margin-top:14px}
+  .footer-mention{position:static!important;margin:12px 0}
+  .watermark{font-size:56px!important}
+  [style*="min-width:120px"]{min-width:0!important}
+  /* fiche a imprimer */
+  .grid{grid-template-columns:1fr!important}
+  .column:first-child{border-left:none!important;border-bottom:1px solid #e0e0e0}
+  .row{flex-wrap:wrap;gap:4px}
+  .no-print button,.no-print a{display:inline-block;min-height:40px;margin:4px!important}
+  pre{white-space:pre-wrap;word-break:break-word}
+}
+/* ===== fin MOBILE pages imprimables ===== */
+</style>
+</head>
+<body>
+<div class="no-print">
+  <button onclick="window.print()">🖨️ طباعة / PDF</button>
+  <a href="{{ BASE }}/">→ القائمة</a>
+</div>
+<div class="page">
+  <div class="header"><h1>📋 ملف المنوب والقضية</h1></div>
+  <div class="case-num" id="caseNum"></div>
+  <div class="grid">
+    <div class="column" id="rightCol"></div>
+    <div class="column" id="leftCol"></div>
+  </div>
+  <div class="footer">نسخة مزدوجة — وثيقة داخلية سرية</div>
+</div>
+<script>
+const CID = {{ client_id }};
+const B = '{{ BASE }}';
+function r(l,v){ return v ? `<div class="row"><span class="lbl">${l}</span><span class="val">${v}</span></div>` : ''; }
+function sf(l,v){ return v ? `<div class="row"><span class="lbl">${l}</span><span class="val"><span class="sifa">${v}</span></span></div>` : ''; }
+
+async function load() {
+  const c = await (await fetch(`${B}/api/clients/${CID}`)).json();
+  document.getElementById('caseNum').textContent = 'رقم القضية: ' + (c.raqm_qadiya || '—');
+  let right = `<div class="section-title">👤 المنوب</div>`;
+  right += r('الهوية', c.client_nom) + r('رقم الهوية', c.client_id_num) + r('المستفيد', c.client_mustafid) + sf('الصفة', c.client_sifa);
+  right += r('العنوان', c.client_adresse) + r('الهاتف', c.client_tel) + r('البريد', c.client_email);
+
+  let left = `<div class="section-title">👤 الطرف الضد</div>`;
+  left += r('الهوية', c.adverse_nom) + r('رقم الهوية', c.adverse_id_num) + sf('الصفة', c.adverse_sifa);
+  left += r('العنوان', c.adverse_adresse) + r('الهاتف', c.adverse_tel) + r('البريد', c.adverse_email);
+  left += `<div class="section-title">⚖️ المحامي المسؤول 1</div>`;
+  left += r('اسم المحامي', c.avocat_nom) + r('العنوان', c.avocat_adresse) + r('الهاتف', c.avocat_tel) + r('البريد', c.avocat_email);
+
+  if (c.extra_avocats) {
+    c.extra_avocats.forEach((a, i) => {
+      left += `<div class="section-title">⚖️ المحامي المسؤول ${i+2}</div>`;
+      left += r('اسم المحامي', a.nom) + r('العنوان', a.adresse) + r('الهاتف', a.tel) + r('البريد', a.email);
+    });
+  }
+  if (c.extra_adverses) {
+    c.extra_adverses.forEach((a, i) => {
+      left += `<div class="section-title">👤 الطرف الضد ${i+2}</div>`;
+      left += r('الهوية', a.nom) + r('رقم الهوية', a.id_num) + sf('الصفة', a.sifa);
+      left += r('العنوان', a.adresse) + r('الهاتف', a.tel) + r('البريد', a.email);
+      left += `<div class="section-title">⚖️ المحامي المسؤول 1</div>`;
+      left += r('اسم المحامي', a.avocat_nom) + r('العنوان', a.avocat_adresse) + r('الهاتف', a.avocat_tel) + r('البريد', a.avocat_email);
+      if (a.extra_avocats) {
+        a.extra_avocats.forEach((av, j) => {
+          left += `<div class="section-title">⚖️ المحامي المسؤول ${j+2}</div>`;
+          left += r('اسم المحامي', av.nom) + r('العنوان', av.adresse) + r('الهاتف', av.tel) + r('البريد', av.email);
+        });
+      }
+    });
+  }
+  document.getElementById('rightCol').innerHTML = right;
+  document.getElementById('leftCol').innerHTML = left;
+}
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}قائمة الحرفاء{% endblock %}
+{% block content %}
+
+<!-- BARRE DE RECHERCHE -->
+<div class="card" style="margin-bottom:14px">
+  <div class="card-body" style="padding:12px 18px">
+    <form method="GET" style="display:flex;gap:10px;align-items:center">
+      <input type="text" name="q" value="{{ q }}"
+             placeholder="🔍 بحث بالاسم، رقم الهوية، الهاتف..."
+             style="flex:1;font-size:14px">
+      <button type="submit" class="btn btn-primary">بحث</button>
+      {% if q %}
+      <a href="{{ BASE }}/" class="btn btn-secondary">✕ مسح</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<!-- LISTE -->
+<div class="card">
+  <div class="card-header">
+    <h2>📋 الحرفاء — {{ clients|length }} ملف</h2>
+    <a href="{{ BASE }}/new" class="btn btn-success btn-sm">＋ ملف جديد</a>
+  </div>
+  {% if not clients %}
+  <div class="empty">لا توجد نتائج{% if q %} لـ "{{ q }}"{% endif %}</div>
+  {% else %}
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead>
+      <tr style="background:var(--light);border-bottom:2px solid var(--border)">
+        <th style="padding:10px 16px;text-align:right;font-weight:700;color:var(--blue)">الهوية</th>
+        <th style="padding:10px 16px;text-align:right;font-weight:700;color:var(--blue)">رقم الهوية</th>
+        <th style="padding:10px 16px;text-align:right;font-weight:700;color:var(--blue)">الهاتف</th>
+        <th style="padding:10px 16px;text-align:right;font-weight:700;color:var(--blue)">جهات الاتصال</th>
+        <th style="padding:10px 16px;text-align:center;font-weight:700;color:var(--blue)">إجراءات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in clients %}
+      <tr style="border-bottom:1px solid var(--border);transition:background .1s" onmouseover="this.style.background='#F5F3EF'" onmouseout="this.style.background=''">
+        <td style="padding:10px 16px;font-weight:600">
+          <a href="{{ BASE }}/client/{{ c.id }}" style="color:var(--blue2);text-decoration:none">
+            {{ c.houwiya or '—' }}
+          </a>
+          {% if c.fiche_client_id %}
+          <a href="{{ FICHE_URL }}/client/{{ c.fiche_client_id }}" target="_blank"
+             title="ملف المنوب" style="font-size:10px;color:var(--blue3);margin-right:6px">🔗</a>
+          {% endif %}
+        </td>
+        <td style="padding:10px 16px;color:var(--text2)">{{ c.num_houwiya or '—' }}</td>
+        <td style="padding:10px 16px;direction:ltr;text-align:right">{{ c.telephone or '—' }}</td>
+        <td style="padding:10px 16px;font-size:11px;color:var(--text2)">
+          {% if c.contact1_nom %}👤 {{ c.contact1_nom }}{% if c.contact1_tel %} · {{ c.contact1_tel }}{% endif %}<br>{% endif %}
+          {% if c.contact2_nom %}👤 {{ c.contact2_nom }}{% if c.contact2_tel %} · {{ c.contact2_tel }}{% endif %}{% endif %}
+        </td>
+        <td style="padding:10px 16px;text-align:center">
+          <a href="{{ BASE }}/client/{{ c.id }}" class="btn btn-info btn-sm">👁️</a>
+          <a href="{{ BASE }}/client/{{ c.id }}/edit" class="btn btn-secondary btn-sm">✏️</a>
+          <form method="POST" action="{{ BASE }}/client/{{ c.id }}/delete" style="display:inline"
+                onsubmit="return confirm('حذف هذا الملف؟')">
+            <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

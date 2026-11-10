@@ -1,0 +1,469 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — طور القضايا{% endblock %}
+
+{% block extra_style %}
+<style>
+  .form-card { background: var(--white); border-radius: 10px; box-shadow: var(--shadow); max-width: 900px; margin: 0 auto; }
+  .form-card-header { background: rgba(255,255,255,.62); color: var(--white); padding: 16px 24px; border-radius: 10px 10px 0 0; font-size: 16px; font-weight: 700; }
+  .form-body { padding: 24px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+  label .req { color: var(--red); }
+  input[type="text"], input[type="date"], textarea {
+    padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px;
+    font-family: inherit; font-size: 13px; direction: rtl;
+    background: var(--white); color: var(--text); outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, textarea:focus { border-color: var(--blue-1); box-shadow: 0 0 0 3px rgba(62,127,209,.15); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* ── عدد القضية ── */
+  .adad-row { display: flex; gap: 8px; }
+  .adad-wrapper { position: relative; flex: 1; }
+  .adad-wrapper input { width: 100%; }
+  .btn-lookup { padding: 9px 14px; background: var(--blue-1); color: var(--white); border: none; border-radius: 7px; cursor: pointer; font-family: inherit; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
+  .btn-lookup:hover { background: var(--blue-2); }
+  .btn-lookup.ok { background: var(--green); }
+  .autocomplete-list { display: none; position: absolute; top: 100%; right: 0; left: 0; background: var(--white); border: 1px solid var(--blue-1); border-top: none; border-radius: 0 0 7px 7px; box-shadow: 0 4px 16px rgba(44,101,174,.15); z-index: 300; max-height: 200px; overflow-y: auto; }
+  .autocomplete-list.open { display: block; }
+  .ac-item { padding: 9px 14px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f0f4fa; display: flex; gap: 10px; }
+  .ac-item:hover { background: var(--blue-lighter); }
+  .ac-raqm { font-weight: 700; color: var(--blue-2); min-width: 60px; }
+  .ac-nom { color: var(--text-2); font-size: 12px; }
+  .lookup-result { display: none; margin-top: 6px; padding: 8px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .lookup-result.ok  { display: block; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+  .lookup-result.nok { display: block; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+  /* ── Parties dynamiques ── */
+  .parties-block { grid-column: 1/-1; background: var(--blue-lighter); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .parties-title { font-size: 14px; font-weight: 700; color: var(--blue-2); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .party-row { display: grid; grid-template-columns: 1fr 200px 36px; gap: 8px; align-items: center; padding: 8px 4px; border-bottom: 2px solid #D5CFC5; }
+  .party-row:last-of-type { border-bottom: none; }
+  .party-row input { margin: 0; }
+  .party-row select {
+    padding: 9px 8px; border: 1px solid var(--border); border-radius: 7px;
+    font-family: inherit; font-size: 13px; direction: rtl;
+    background: var(--white); color: var(--text); outline: none;
+    cursor: pointer; width: 100%;
+  }
+  .party-row select:focus { border-color: var(--blue-1); box-shadow: 0 0 0 3px rgba(62,127,209,.15); }
+  .btn-remove-party:hover { background: #f5c6c6; }
+  .btn-add-party { background: var(--blue-light); color: var(--blue-2); border: 1px solid var(--blue-1); border-radius: 6px; padding: 7px 14px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; }
+  .btn-add-party:hover { background: #D6E3F4; }
+  .party-header { display: grid; grid-template-columns: 1fr 200px 36px; gap: 8px; margin-bottom: 6px; padding: 6px 8px; background: var(--blue-2); border-radius: 6px; }
+  .party-header span { font-size: 12px; font-weight: 700; color: var(--white); }
+
+  /* طور القضية */
+  .tawar-group { background: var(--blue-lighter); border: 2px solid var(--blue-1); border-radius: 8px; padding: 12px; }
+  .tawar-group > label { color: var(--blue-2); font-size: 14px; }
+  .tawar-options { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+  .tawar-radio { display: none; }
+  .tawar-label { padding: 8px 18px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 600; border: 2px solid var(--border); background: var(--white); color: var(--text-2); transition: all .15s; user-select: none; }
+  .tawar-radio:checked + .tawar-label { border-color: var(--blue-1); background: var(--blue-1); color: var(--white); }
+
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid var(--border); margin-top: 20px; }
+  .section-label { grid-column: 1/-1; font-size: 12px; font-weight: 700; color: var(--blue-2); padding-bottom: 4px; border-bottom: 2px solid var(--blue-light); }
+  .autofilled { border-color: var(--green) !important; background: #f0fff4 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-card">
+  <div class="form-card-header">⚖️ {{ title }}</div>
+  <div class="form-body">
+    <form method="POST" id="mainForm">
+      <!-- Champs JSON cachés soumis avec le formulaire -->
+      <input type="hidden" id="mandubeen_json" name="mandubeen_json" value="">
+      <input type="hidden" id="addad_json"     name="addad_json"     value="">
+
+      <div class="form-grid">
+
+        <div class="section-label">بيانات القضية</div>
+
+        <div class="form-group">
+          <label for="mahkama">المحكمة</label>
+          <input type="text" id="mahkama" name="mahkama"
+                 value="{{ qadiya.mahkama if qadiya else '' }}"
+                 list="mahkama-list" autocomplete="off"
+                 placeholder="اختر أو اكتب اسم المحكمة…">
+          <datalist id="mahkama-list">
+            <option value="استئناف بتونس">
+            <option value="استئناف بنزرت">
+            <option value="استئناف بنابل">
+            <option value="استئناف بصفاقس">
+            <option value="استئناف بسوسة">
+            <option value="استئناف بالكاف">
+            <option value="استئناف بالمنستير">
+            <option value="استئناف بقفصة">
+            <option value="استئناف بمدنين">
+            <option value="استئناف بقابس">
+            <option value="استئناف بالقصرين">
+            <option value="استئناف بسيدي بوزيد">
+            <option value="استئناف بالقيروان">
+            <option value="استئناف بجندوبة">
+            <option value="استئناف بباجة">
+            <option value="استئناف بسليانة">
+            <option value="أحداث بتونس">
+            <option value="أحداث بأريانة">
+            <option value="أحداث بنعروس">
+            <option value="أحداث بمنوبة">
+            <option value="أحداث بسوسة">
+            <option value="ابتدائية باريانة">
+            <option value="ابتدائية بنعروس">
+            <option value="ابتدائية منوبة">
+            <option value="ابتدائية بتونس">
+            <option value="إبتدائية بتونس">
+            <option value="ابتدائية بتونس 2">
+            <option value="ابتدائية ببنزرت">
+            <option value="ابتدائية بباجة">
+            <option value="ابتدائية بزغوان">
+            <option value="ابتدائية بقرمبالية">
+            <option value="ابتدائية بصفاقس 2">
+            <option value="ابتدائية بنابل">
+            <option value="ابتدائية بصفاقس">
+            <option value="ابتدائية بسوسة">
+            <option value="ابتدائية بسوسة 2">
+            <option value="ابتدائية بالقيروان">
+            <option value="ابتدائية بالكاف">
+            <option value="ابتدائية بسليانة">
+            <option value="ابتدائية بالقصرين">
+            <option value="ابتدائية بجندوبة">
+            <option value="ابتدائية بالمنستير">
+            <option value="ابتدائية بالمهدية">
+            <option value="ابتدائية بقفصة">
+            <option value="ابتدائية بسيدي بوزيد">
+            <option value="ابتدائية بتوزر">
+            <option value="ابتدائية بمدنين">
+            <option value="ابتدائية بتطاوين">
+            <option value="ابتدائية بقابس">
+            <option value="ابتدائية بقبلي">
+            <option value="ابتدائية بجربة">
+            <option value="ناحية تونس">
+            <option value="ناحية باردو">
+            <option value="ناحية قرطاج">
+            <option value="ناحية حي الزهور">
+            <option value="ناحية الوردية">
+            <option value="ناحية بنزرت">
+            <option value="ناحية منزل بورقيبة">
+            <option value="ناحية ماطر">
+            <option value="ناحية راس الجبل">
+            <option value="ناحية باجة">
+            <option value="ناحية مجاز الباب">
+            <option value="ناحية تبرسق">
+            <option value="ناحية زغوان">
+            <option value="ناحية الفحص">
+            <option value="ناحية نابل">
+            <option value="ناحية قرمبالية">
+            <option value="ناحية منزل تميم">
+            <option value="ناحية الحمامات">
+            <option value="ناحية بن عروس">
+            <option value="ناحية حمام الانف">
+            <option value="ناحية أريانة">
+            <option value="ناحية صفاقس">
+            <option value="ناحية صفاقس 2">
+            <option value="ناحية جبينيانة">
+            <option value="ناحية المحرس">
+            <option value="ناحية عقارب">
+            <option value="ناحية سوسة">
+            <option value="ناحية سوسة 2">
+            <option value="ناحية مساكن">
+            <option value="ناحية النفيضة">
+            <option value="ناحية القيروان">
+            <option value="ناحية حفوز">
+            <option value="ناحية بوحجلة">
+            <option value="ناحية الوسلاتية">
+            <option value="ناحية السبيخة">
+            <option value="ناحية الكاف 1">
+            <option value="ناحية تاجروين">
+            <option value="ناحية الدهماني">
+            <option value="ناحية سليانة">
+            <option value="ناحية مكثر">
+            <option value="ناحية قعفور">
+            <option value="ناحية القصرين">
+            <option value="ناحية تالة">
+            <option value="ناحية سبيطلة">
+            <option value="ناحية سبيبة">
+            <option value="ناحية فريانة">
+            <option value="ناحية جندوبة">
+            <option value="ناحية بوسالم">
+            <option value="ناحية عين دراهم">
+            <option value="ناحية غار الدماء">
+            <option value="ناحية جمال">
+            <option value="ناحية مكنين">
+            <option value="ناحية المهدية">
+            <option value="ناحية السواسي">
+            <option value="ناحية الجم">
+            <option value="ناحية قصور الساف">
+            <option value="ناحية الشابة">
+            <option value="ناحية قفصة">
+            <option value="ناحية المتلوي">
+            <option value="ناحية سيدي بوزيد">
+            <option value="ناحية بنعون">
+            <option value="ناحية المكناسي">
+            <option value="ناحية توزر">
+            <option value="ناحية مدنين">
+            <option value="ناحية بنقردان">
+            <option value="ناحية جرجيس">
+            <option value="ناحية جربة">
+            <option value="ناحية تطاوين">
+            <option value="ناحية قابس">
+            <option value="ناحية الحامة">
+            <option value="ناحية مارث">
+            <option value="ناحية مطماطة">
+            <option value="ناحية قبلي">
+            <option value="ناحية المنستير">
+            <option value="ناحية ساقية الزيت">
+            <option value="ناحية عمراسن">
+            <option value="ناحية فوسانة">
+            <option value="ناحية طبرقة">
+            <option value="ناحية حلمة">
+            <option value="ناحية الرقاب">
+            <option value="ناحية طبربة">
+            <option value="ناحية منوبة">
+            <option value="ناحية بئر علي بن خليفة">
+            <option value="ناحية نفرة">
+            <option value="ناحية الكريب">
+            <option value="منزل بوزلفة">
+            <option value="حي التضامن">
+          </datalist>
+        </div>
+
+        <div class="form-group">
+          <label for="adad">عدد القضية</label>
+          <div class="adad-row">
+            <div class="adad-wrapper">
+              <input type="text" id="adad" name="adad"
+                     value="{{ qadiya.adad if qadiya else '' }}"
+                     placeholder="اكتب العدد…" autocomplete="off">
+              <div class="autocomplete-list" id="acList"></div>
+            </div>
+            <button type="button" class="btn-lookup" id="btnLookup">🔍 ملف المنوب</button>
+          </div>
+          <div class="lookup-result" id="lookupResult"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="daira">الدائرة</label>
+          <input type="text" id="daira" name="daira"
+                 value="{{ qadiya.daira if qadiya else '' }}"
+                 placeholder="مثال: الدائرة الأولى">
+        </div>
+
+        <div class="form-group">
+          <label for="mawdu3">الموضوع</label>
+          <input type="text" id="mawdu3" name="mawdu3"
+                 value="{{ qadiya.mawdu3 if qadiya else '' }}"
+                 placeholder="موضوع القضية">
+        </div>
+
+        <!-- ── المنوبون ── -->
+        <div class="parties-block">
+          <div class="parties-title">
+            <span>👤 المنوب / المنوبون</span>
+          </div>
+          <div class="party-header">
+            <span>الاسم واللقب</span>
+            <span>الصفة</span>
+            <span></span>
+          </div>
+          <div id="mandubList"></div>
+          <button type="button" class="btn-add-party" onclick="addParty('mandub')">＋ إضافة منوب</button>
+        </div>
+
+        <!-- ── الأضداد ── -->
+        <div class="parties-block">
+          <div class="parties-title">
+            <span>⚔️ الضد / الأضداد</span>
+          </div>
+          <div class="party-header">
+            <span>الاسم واللقب</span>
+            <span>الصفة</span>
+            <span></span>
+          </div>
+          <div id="diddList"></div>
+          <button type="button" class="btn-add-party" onclick="addParty('didd')">＋ إضافة ضد</button>
+        </div>
+
+        <!-- ── تفاصيل ── -->
+        <div class="section-label">تفاصيل القضية</div>
+
+        <div class="form-group">
+          <label for="tarikh">التاريخ</label>
+          <input type="date" id="tarikh" name="tarikh"
+                 value="{{ qadiya.tarikh if qadiya else '' }}"
+                 style="direction:ltr;text-align:right;">
+        </div>
+
+        <div class="form-group full">
+          <label for="gharad">الغرض</label>
+          <input type="text" id="gharad" name="gharad"
+                 value="{{ qadiya.gharad if qadiya else '' }}"
+                 placeholder="موضوع القضية والغرض منها">
+        </div>
+
+        <div class="form-group full">
+          <label for="mulahazat">ملاحظات</label>
+          <textarea id="mulahazat" name="mulahazat"
+                    placeholder="ملاحظات إضافية…">{{ qadiya.mulahazat if qadiya else '' }}</textarea>
+        </div>
+
+        <div class="form-group full tawar-group">
+          <label>⚡ طور القضية</label>
+          <div class="tawar-options">
+            {% for t in TOURS %}
+              <input type="radio" class="tawar-radio" id="tawar_{{ loop.index }}" name="tawar" value="{{ t }}"
+                     {% if (qadiya and qadiya.tawar == t) or (not qadiya and t == 'جارية') %}checked{% endif %}>
+              <label for="tawar_{{ loop.index }}" class="tawar-label">{{ t }}</label>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <a href="{{ BASE }}/" class="btn btn-secondary">↩ إلغاء</a>
+        <button type="submit" class="btn btn-success">
+          {% if qadiya %}💾 حفظ التعديلات{% else %}✅ إضافة القضية{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+const BASE = "{{ BASE }}";
+
+// ── Données initiales depuis le serveur ──────────────────────
+const INIT_MANDUBEEN = {{ (qadiya.mandubeen_list if qadiya else []) | tojson }};
+const INIT_ADDAD     = {{ (qadiya.addad_list     if qadiya else []) | tojson }};
+
+// ── Gestion des listes dynamiques ───────────────────────────
+const SIFAT = ['', 'مدعي', 'مدعى عليه', 'مستأنف', 'مستأنف ضده', 'معقب', 'معقب ضده',
+               'دائن العاقل', 'المدين المعقول عنه', 'المعقول تحت يده'];
+
+function sifaSelect(val) {
+  const opts = SIFAT.map(s =>
+    `<option value="${s}" ${s === val ? 'selected' : ''}>${s || '— الصفة —'}</option>`
+  ).join('');
+  return `<select class="party-sifa">${opts}</select>`;
+}
+
+function addParty(type, nom='', sifa='') {
+  const listId = type === 'mandub' ? 'mandubList' : 'diddList';
+  const list   = document.getElementById(listId);
+  const row    = document.createElement('div');
+  row.className = 'party-row';
+  row.innerHTML = `
+    <input type="text" placeholder="الاسم واللقب" value="${escHtml(nom)}" class="party-nom">
+    ${sifaSelect(sifa)}
+    <button type="button" class="btn-remove-party" onclick="this.closest('.party-row').remove()">✕</button>
+  `;
+  list.appendChild(row);
+}
+
+function getParties(listId) {
+  const rows = document.querySelectorAll(`#${listId} .party-row`);
+  const result = [];
+  rows.forEach(r => {
+    const nom  = r.querySelector('.party-nom').value.trim();
+    const sifa = r.querySelector('.party-sifa').value.trim();
+    if (nom || sifa) result.push({nom, sifa});
+  });
+  return result;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+// Sérialiser avant soumission
+document.getElementById('mainForm').addEventListener('submit', () => {
+  document.getElementById('mandubeen_json').value = JSON.stringify(getParties('mandubList'));
+  document.getElementById('addad_json').value     = JSON.stringify(getParties('diddList'));
+});
+
+// Initialiser avec les données existantes
+INIT_MANDUBEEN.forEach(p => addParty('mandub', p.nom, p.sifa));
+INIT_ADDAD.forEach(p     => addParty('didd',   p.nom, p.sifa));
+// Toujours au moins une ligne vide
+if (!INIT_MANDUBEEN.length) addParty('mandub');
+if (!INIT_ADDAD.length)     addParty('didd');
+
+// ── Autocomplete عدد القضية ──────────────────────────────────
+let CLIENTS = [];
+fetch(`${BASE}/api/clients-list`).then(r=>r.json()).then(d=>{CLIENTS=d;}).catch(()=>{});
+
+document.getElementById('adad').addEventListener('input', function() {
+  const val  = this.value.trim();
+  const list = document.getElementById('acList');
+  if (!val || val.length < 2) { list.classList.remove('open'); return; }
+  const matches = CLIENTS.filter(c =>
+    (c.raqm_qadiya && c.raqm_qadiya.includes(val)) ||
+    (c.client_nom  && c.client_nom.includes(val))
+  ).slice(0,10);
+  list.innerHTML = '';
+  matches.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'ac-item';
+    item.innerHTML = `<span class="ac-raqm">${c.raqm_qadiya||'—'}</span><span class="ac-nom">${c.client_nom||''}</span>`;
+    item.addEventListener('click', () => applyClient(c));
+    list.appendChild(item);
+  });
+  list.classList.toggle('open', matches.length > 0);
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.adad-wrapper')) document.getElementById('acList').classList.remove('open');
+});
+
+// ── Bouton lookup ─────────────────────────────────────────────
+document.getElementById('btnLookup').addEventListener('click', async function() {
+  const adad = document.getElementById('adad').value.trim();
+  if (!adad) return;
+  this.textContent = '⏳'; this.disabled = true;
+  try {
+    const r = await fetch(`${BASE}/api/client-lookup?adad=${encodeURIComponent(adad)}`);
+    const d = await r.json();
+    if (d.found) {
+      applyClient(d);
+      this.textContent = '✅ تم'; this.classList.add('ok');
+    } else {
+      showResult('nok', '⚠️ العدد غير موجود في ملف المنوب');
+      this.textContent = '🔍 ملف المنوب';
+    }
+  } catch(e) { this.textContent = '🔍 ملف المنوب'; }
+  this.disabled = false;
+});
+
+// ── Appliquer les données client ──────────────────────────────
+function applyClient(c) {
+  document.getElementById('acList').classList.remove('open');
+  if (c.raqm_qadiya) document.getElementById('adad').value = c.raqm_qadiya;
+
+  // Remplir المنوبون depuis fiche-client
+  if (c.mandubeen && c.mandubeen.length) {
+    document.getElementById('mandubList').innerHTML = '';
+    c.mandubeen.forEach(p => addParty('mandub', p.nom, p.sifa));
+  }
+  // Remplir الأضداد depuis fiche-client
+  if (c.addad && c.addad.length) {
+    document.getElementById('diddList').innerHTML = '';
+    c.addad.forEach(p => addParty('didd', p.nom, p.sifa));
+  }
+
+  const nom  = c.client_nom || '';
+  const link = c.folder_url ? ` — <a href="${c.folder_url}" target="_blank">📂 فتح الملف</a>` : '';
+  showResult('ok', `✅ تم جلب بيانات المنوب : ${nom}${link}`);
+}
+
+function showResult(type, html) {
+  const r = document.getElementById('lookupResult');
+  r.className = 'lookup-result ' + type;
+  r.innerHTML = html;
+}
+</script>
+{% endblock %}

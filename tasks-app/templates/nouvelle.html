@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}مهمة جديدة{% endblock %}
+{% block extra_style %}
+<style>
+  .nc-users-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .nc-user-btn{padding:7px 14px;border-radius:14px;border:1px solid var(--border);background:#F7F5F1;cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s}
+  .nc-user-btn:hover{background:var(--light);border-color:var(--blue3)}
+  .nc-user-btn.active{background:var(--light);border-color:var(--blue3);color:var(--blue);font-weight:600}
+  .user-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:20px}
+  .user-tag{background:var(--light);border:1px solid var(--blue3);color:var(--blue);border-radius:14px;padding:3px 10px;font-size:12px;font-weight:600}
+  .ctx-scroll{max-height:224px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px;display:flex;flex-direction:column;gap:3px;background:#fafbfc}
+  .ctx-scroll::-webkit-scrollbar{width:5px}.ctx-scroll::-webkit-scrollbar-thumb{background:#c8d8ea;border-radius:4px}
+  .ctx-btn{padding:9px 14px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:13px;font-family:inherit;text-align:right;color:var(--text);transition:all .12s;display:flex;align-items:center;gap:8px;width:100%}
+  .ctx-btn:hover{background:#e8f0fb}.ctx-btn.active{background:#3E7FD1;color:white;font-weight:700}
+  .ctx-extra{border:1px solid rgba(255,255,255,.5);border-radius:6px;padding:3px 8px;font-size:12px;font-family:inherit;background:rgba(255,255,255,.25);color:white;width:130px}
+  .ctx-extra::placeholder{color:rgba(255,255,255,.7)}.ctx-btn:not(.active) .ctx-extra{border-color:var(--border);background:white;color:var(--text)}
+  .ctx-tablewrap{margin-top:10px;overflow-x:auto;border:1px solid var(--blue3);border-radius:8px;background:#fff}
+  .ctx-table{border-collapse:collapse;width:100%;font-size:12px}
+  .ctx-table th{background:#3E7FD1;color:#fff;font-weight:700;padding:7px 8px;border:1px solid #3E7FD1;white-space:nowrap;font-size:11px}
+  .ctx-table td{border:1px solid var(--border);padding:2px}
+  .ctx-table input{width:100%;min-width:92px;border:none;background:transparent;padding:6px;font-size:12px;font-family:inherit;box-sizing:border-box}
+  .ctx-table input:focus{outline:2px solid var(--blue3);outline-offset:-2px;border-radius:4px}
+  .ctx-actc{width:1%;white-space:nowrap;text-align:center;background:#F3F1EC;padding:2px 4px!important}
+  .ctx-table th.ctx-doneh{background:#2E7D4F;white-space:nowrap}
+  .ctx-donec{text-align:center;background:#F3F1EC}
+  .ctx-table input.ctx-done{width:auto;min-width:0;cursor:pointer;transform:scale(1.25)}
+  .ctx-table tr.done td{background:#d8f3dc!important}
+  .ctx-ins{background:none;border:none;color:var(--blue);cursor:pointer;font-size:14px;padding:0 3px;line-height:1}
+  .ctx-del{background:none;border:none;color:#C25B4A;cursor:pointer;font-size:13px;padding:0 3px;line-height:1}
+  .ctx-add{margin-top:8px;background:#eaf3ff;border:1px dashed var(--blue3);color:var(--blue);border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-family:inherit}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:680px;margin:0 auto">
+  <div class="card-header"><h2>＋ مهمة جديدة</h2></div>
+  <div class="card-body">
+    <form method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
+      <div class="form-grid">
+
+        <div class="form-group full">
+          <label>العنوان *</label>
+          <input type="text" name="titre" required placeholder="عنوان المهمة...">
+        </div>
+
+        <div class="form-group full">
+          <label>الوصف</label>
+          <textarea name="description" rows="3" placeholder="تفاصيل المهمة..."></textarea>
+        </div>
+
+        <div class="form-group full">
+          <label>📋 ربط بسجل <small style="font-weight:400;color:var(--text2)">(اختياري)</small></label>
+          <input type="hidden" name="contexte" id="contexteField" value="">
+          <div class="ctx-scroll" id="ctxList"></div>
+          <div id="ctxWrap" style="display:none">
+            <div id="ctxGrid"></div>
+            <div style="text-align:left;margin-top:6px">
+              <button type="button" onclick="clearCtx()" style="background:none;border:none;color:#C25B4A;font-size:12px;cursor:pointer">✕ إلغاء الربط</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label>تعيين إلى * <small style="font-weight:400;color:var(--text2)">(انقر لاختيار — يمكن اختيار أكثر من مستخدم)</small></label>
+          <input type="hidden" name="assigne_a" id="assigneA">
+          <div class="nc-users-grid">
+            {% for u in nc_users %}
+            <button type="button" class="nc-user-btn" data-val="{{ u }}" onclick="toggleUser(this,'{{ u }}')">👤 {{ u }}</button>
+            {% endfor %}
+          </div>
+          <div class="user-tags" id="selectedTags"></div>
+          <small id="userError" style="color:var(--red);font-size:11px;display:none">⚠️ يرجى اختيار مستخدم واحد على الأقل</small>
+        </div>
+
+        <div class="form-group">
+          <label>الأولوية</label>
+          <select name="priorite">
+            <option value="haute">🔴 عالية</option>
+            <option value="normale" selected>🟡 عادية</option>
+            <option value="basse">🟢 منخفضة</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>الموعد النهائي</label>
+          <input type="date" name="deadline" style="direction:ltr">
+        </div>
+
+        <div class="form-group">
+          <label>📎 ملف مرفق (اختياري)</label>
+          <input type="file" name="fichier" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt,.xls,.xlsx">
+        </div>
+
+        <div class="form-group full" style="background:#F3F1EC;border-radius:8px;padding:12px 14px;border:1px solid var(--border)">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;margin:0">
+            <input type="checkbox" name="notif_email" value="1" checked style="width:18px;height:18px;cursor:pointer;accent-color:var(--blue2)">
+            <span>📧 إرسال إشعار بالبريد الإلكتروني للمستخدم المعيّن</span>
+          </label>
+          <small style="color:var(--text2);font-size:11px;margin-top:4px;display:block;margin-right:28px">سيتلقى المستخدم إشعاراً بالبريد الإلكتروني مع تفاصيل المهمة</small>
+        </div>
+
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px">
+        <a href="{{ BASE }}/" class="btn btn-secondary">↩ إلغاء</a>
+        <button type="submit" class="btn btn-success">💾 إنشاء المهمة</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+let selected=new Set();
+function toggleUser(btn,val){
+  if(selected.has(val)){selected.delete(val);btn.classList.remove('active');btn.innerHTML='👤 '+val;}
+  else{selected.add(val);btn.classList.add('active');btn.innerHTML='✅ '+val;}
+  document.getElementById('assigneA').value=[...selected].join(',');
+  document.getElementById('selectedTags').innerHTML=[...selected].map(v=>`<span class="user-tag">✅ ${v}</span>`).join('');
+}
+function validateForm(){
+  if(selected.size===0){document.getElementById('userError').style.display='block';return false;}
+  serializeCtx();return true;
+}
+
+const TABLEAUX=[
+  {id:'malat',         titre:'مآلات',                   extra:false, champs:['المحكمة','الدائرة','عدد القضية','المنوب','الضد','تاريخ الجلسة','الغرض','الجلسة المقبلة']},
+  {id:'ahkam',         titre:'أحكام',                   extra:true,  champs:['المحكمة','الدائرة','عدد القضية','المنوب','الضد','تاريخ الحكم','العمل المطلوب','تاريخ الإنجاز']},
+  {id:'mutabaat',      titre:'متابعات',                 extra:false, champs:['المحكمة','الدائرة','عدد القضية','المنوب','الضد','التاريخ','الموضوع']},
+  {id:'ajal',          titre:'أجال',                    extra:false, champs:['المحكمة','عدد القضية','الدائرة','المنوب','الضد','العمل المطلوب','تاريخ آخر أجل','تاريخ الإنجاز']},
+  {id:'amal_mahkama',  titre:'أعمال للإنجاز بالمحكمة', extra:false, champs:['المحكمة','الدائرة','عدد القضية','المنوب','الضد','تاريخ الجلسة','العمل','تاريخ التكليف','ملاحظات']},
+  {id:'amal_maktab',   titre:'أعمال للإنجاز بالمكتب',  extra:false, champs:['المحكمة','الدائرة','عدد القضية','المنوب','الضد','تاريخ التكليف','العمل','ملاحظات']},
+  {id:'malat_shakayet',titre:'مآلات الشكايات',          extra:false, champs:['المحكمة','الدائرة','عدد القضية','المنوب','الضد','تاريخ الإيداع','تاريخ المراقبة']},
+];
+let activeId=null;
+
+(function buildList(){
+  const list=document.getElementById('ctxList');
+  TABLEAUX.forEach(tb=>{
+    const btn=document.createElement('button');
+    btn.type='button'; btn.className='ctx-btn'; btn.dataset.id=tb.id;
+    if(tb.extra){ btn.innerHTML=`<span>${tb.titre}</span><input type="text" id="extra-${tb.id}" class="ctx-extra" placeholder="أضف اسماً..." onclick="event.stopPropagation()">`; }
+    else { btn.textContent=tb.titre; }
+    btn.addEventListener('click',()=>selectCtx(tb.id));
+    list.appendChild(btn);
+  });
+})();
+
+function selectCtx(id){
+  if(activeId===id){clearCtx();return;}
+  activeId=id;
+  document.querySelectorAll('.ctx-btn').forEach(b=>b.classList.toggle('active',b.dataset.id===id));
+  const tb=TABLEAUX.find(x=>x.id===id);
+  const head='<tr>'+tb.champs.map(ch=>`<th>${ch}</th>`).join('')+'<th class="ctx-doneh">منجز</th><th class="ctx-actc"></th></tr>';
+  document.getElementById('ctxGrid').innerHTML=
+    `<div class="ctx-tablewrap"><table class="ctx-table"><thead>${head}</thead><tbody id="ctxRows"></tbody></table></div>`+
+    `<button type="button" class="ctx-add" onclick="addRow()">＋ إضافة سطر</button>`;
+  addRow();
+  document.getElementById('ctxWrap').style.display='block';
+}
+function clearCtx(){
+  activeId=null;
+  document.querySelectorAll('.ctx-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('ctxWrap').style.display='none';
+  document.getElementById('contexteField').value='';
+}
+function makeRow(tb){
+  const tr=document.createElement('tr');
+  tb.champs.forEach(ch=>{
+    const td=document.createElement('td');
+    const inp=document.createElement('input'); inp.type='text'; inp.dataset.champ=ch;
+    td.appendChild(inp); tr.appendChild(td);
+  });
+  const tdD=document.createElement('td'); tdD.className='ctx-donec';
+  const cb=document.createElement('input'); cb.type='checkbox'; cb.className='ctx-done';
+  cb.onchange=function(){ tr.classList.toggle('done', cb.checked); };
+  tdD.appendChild(cb); tr.appendChild(tdD);
+  const td=document.createElement('td'); td.className='ctx-actc';
+  const ins=document.createElement('button'); ins.type='button'; ins.className='ctx-ins'; ins.textContent='＋'; ins.title='إدراج سطر تحته';
+  ins.onclick=function(){ const nr=makeRow(tb); tr.after(nr); const f=nr.querySelector('input'); if(f)f.focus(); };
+  const del=document.createElement('button'); del.type='button'; del.className='ctx-del'; del.textContent='✕'; del.title='حذف السطر';
+  del.onclick=function(){ const body=document.getElementById('ctxRows'); tr.remove(); if(!body.querySelector('tr')) addRow(); };
+  td.appendChild(ins); td.appendChild(del); tr.appendChild(td);
+  return tr;
+}
+function addRow(){
+  const tb=TABLEAUX.find(x=>x.id===activeId); if(!tb) return null;
+  const body=document.getElementById('ctxRows');
+  const tr=makeRow(tb); body.appendChild(tr); return tr;
+}
+function serializeCtx(){
+  if(!activeId){document.getElementById('contexteField').value='';return;}
+  const tb=TABLEAUX.find(x=>x.id===activeId);
+  const data={tableau:activeId,titre:tb.titre,champs:{}};
+  if(tb.extra){const e=document.getElementById('extra-'+activeId);if(e)data.titre_extra=e.value.trim();}
+  tb.champs.forEach(ch=>{data.champs[ch]=[];});
+  data.manjez=[];
+  document.querySelectorAll('#ctxRows tr').forEach(tr=>{
+    const inputs=tr.querySelectorAll('input[data-champ]');
+    let any=false; inputs.forEach(inp=>{if(inp.value.trim())any=true;});
+    if(!any) return;
+    inputs.forEach(inp=>{ data.champs[inp.dataset.champ].push(inp.value.trim()); });
+    const cb=tr.querySelector('.ctx-done'); data.manjez.push(cb&&cb.checked?1:0);
+  });
+  document.getElementById('contexteField').value=JSON.stringify(data);
+}
+</script>
+{% endblock %}

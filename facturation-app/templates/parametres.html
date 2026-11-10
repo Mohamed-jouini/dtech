@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Paramètres Cabinet{% endblock %}
+{% block content %}
+<div class="card" style="max-width:860px;margin:0 auto">
+  <div class="card-header"><h2>⚙️ Paramètres du Cabinet</h2></div>
+  <div class="card-body">
+    <form method="POST" enctype="multipart/form-data">
+
+      <!-- ── CABINET ── -->
+      <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <h3 style="color:var(--blue-2);font-size:14px;margin-bottom:14px">🏢 Informations du Cabinet</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Raison Sociale *</label>
+            <input type="text" name="raison_sociale" value="{{ cabinet.raison_sociale }}" required>
+          </div>
+          <div class="form-group">
+            <label>Matricule Fiscal</label>
+            <input type="text" name="matricule_fiscal" value="{{ cabinet.matricule_fiscal }}" placeholder="000000AAA/A/M/000">
+          </div>
+          <div class="form-group full">
+            <label>Adresse</label>
+            <textarea name="adresse" rows="2">{{ cabinet.adresse }}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Téléphone</label>
+            <input type="text" name="tel" value="{{ cabinet.tel }}">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email" value="{{ cabinet.email }}">
+          </div>
+          <div class="form-group full">
+            <label>RIB / Coordonnées bancaires</label>
+            <input type="text" name="rib" value="{{ cabinet.rib }}" placeholder="Banque — IBAN — ...">
+          </div>
+          <div class="form-group">
+            <label>Timbre fiscal (TND)</label>
+            <input type="number" name="timbre" value="{{ cabinet.timbre }}" step="0.001" min="0">
+          </div>
+          <div class="form-group full">
+            <label>Mention légale (bas de facture)</label>
+            <textarea name="mention_legale" rows="2">{{ cabinet.mention_legale }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── LOGO ── -->
+      <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <h3 style="color:var(--blue-2);font-size:14px;margin-bottom:14px">🖼️ Logo</h3>
+        <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+          {% if cabinet.logo_url %}
+          <div>
+            <img src="{{ cabinet.logo_url }}" alt="Logo" style="max-height:70px;max-width:200px;border:1px solid var(--border);border-radius:6px;padding:6px;background:#fff">
+            <div style="font-size:11px;color:var(--text-2);margin-top:4px">Logo actuel</div>
+          </div>
+          {% endif %}
+          <div style="flex:1;min-width:240px">
+            <label style="font-size:13px;font-weight:600;color:var(--text-2)">Importer depuis fichier</label>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <input type="file" id="logoFile" accept=".png,.jpg,.jpeg,.svg,.webp"
+                     style="flex:1;padding:6px;border:1px solid var(--border);border-radius:7px;font-size:12px">
+              <button type="button" onclick="uploadLogo()" class="btn btn-info">📤 Upload</button>
+            </div>
+            <label style="font-size:13px;font-weight:600;color:var(--text-2);margin-top:10px;display:block">Ou URL directe</label>
+            <input type="text" name="logo_url" id="logoUrl" value="{{ cabinet.logo_url or '' }}"
+                   placeholder="https://..." style="margin-top:5px">
+            <small style="color:var(--text-2);font-size:11px">PNG, JPG, SVG — Apparaît en haut des documents imprimés</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EXERCICE ── -->
+      <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <h3 style="color:var(--blue-2);font-size:14px;margin-bottom:14px">📅 Exercice Comptable</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Exercice courant</label>
+            <input type="text" name="exercice_courant"
+                   value="{{ cabinet.exercice_courant or '' }}"
+                   placeholder="{{ today[:4] }}" maxlength="4" pattern="\d{4}">
+            <small style="color:var(--text-2);font-size:11px">Utilisé par défaut pour tous les nouveaux documents (ex: 2026)</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TVA ── -->
+      <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <h3 style="color:var(--blue-2);font-size:14px;margin-bottom:14px">💹 Taux de TVA</h3>
+        <div class="form-group">
+          <label>Taux disponibles (séparés par des virgules)</label>
+          <input type="text" name="tva_rates" value="{{ cabinet.tva_rates or '0,7,13,19' }}"
+                 placeholder="0,7,13,19" style="max-width:300px">
+          <small style="color:var(--text-2);font-size:11px">
+            Ces taux apparaîtront dans le menu déroulant TVA des lignes de facturation<br>
+            Exemple : <strong>0,7,13,19</strong>
+          </small>
+        </div>
+        <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px" id="tva-preview"></div>
+      </div>
+
+      <!-- ── NUMÉROTATION ── -->
+      <div style="margin-bottom:20px">
+        <h3 style="color:var(--blue-2);font-size:14px;margin-bottom:8px">🔢 Numérotation des Documents</h3>
+        <div style="background:#fff3cd;border:1px solid #ffeeba;border-radius:6px;padding:10px 14px;font-size:12px;color:#856404;margin-bottom:14px">
+          ℹ️ Le <strong>préfixe</strong> est la partie fixe (ex: <strong>FA</strong>).
+          Le numéro séquentiel est ajouté automatiquement → <strong>FA-2026-0001</strong>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Préfixe Devis</label>
+            <input type="text" name="prefix_devis" value="{{ cabinet.prefix_devis }}" placeholder="DEV" maxlength="8">
+            <small style="color:var(--text-2);font-size:11px">Ex: DEV → DEV-2026-0001</small>
+          </div>
+          <div class="form-group">
+            <label>Préfixe Facture</label>
+            <input type="text" name="prefix_facture" value="{{ cabinet.prefix_facture }}" placeholder="FA" maxlength="8">
+            <small style="color:var(--text-2);font-size:11px">Ex: FA → FA-2026-0001</small>
+          </div>
+          <div class="form-group">
+            <label>Préfixe Avoir</label>
+            <input type="text" name="prefix_avoir" value="{{ cabinet.prefix_avoir }}" placeholder="AV" maxlength="8">
+            <small style="color:var(--text-2);font-size:11px">Ex: AV → AV-2026-0001</small>
+          </div>
+          <div class="form-group">
+            <label>Format numéro</label>
+            <select name="num_format" style="padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit">
+              <option value="{prefix}-{year}-{num:04d}" {% if cabinet.num_format == '{prefix}-{year}-{num:04d}' or not cabinet.num_format %}selected{% endif %}>FA-2026-0001 (4 chiffres)</option>
+              <option value="{prefix}-{year}-{num:03d}" {% if cabinet.num_format == '{prefix}-{year}-{num:03d}' %}selected{% endif %}>FA-2026-001 (3 chiffres)</option>
+              <option value="{prefix}-{year_short}-{num:04d}" {% if cabinet.num_format == '{prefix}-{year_short}-{num:04d}' %}selected{% endif %}>FA-26-0001 (année courte)</option>
+              <option value="{prefix}{year_short}{num:04d}" {% if cabinet.num_format == '{prefix}{year_short}{num:04d}' %}selected{% endif %}>FA260001 (sans tiret)</option>
+              <option value="{prefix}{num:04d}" {% if cabinet.num_format == '{prefix}{num:04d}' %}selected{% endif %}>FA0001 (sans année)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="submit" class="btn btn-success">💾 Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+// Preview TVA tags
+function updateTvaPreview() {
+  const val = document.querySelector('[name="tva_rates"]').value;
+  const div = document.getElementById('tva-preview');
+  div.innerHTML = val.split(',').map(t => t.trim()).filter(Boolean).map(t =>
+    `<span style="background:var(--blue-light);color:var(--blue-2);border:1px solid var(--border);
+     border-radius:16px;padding:3px 12px;font-size:12px;font-weight:600">${t}%</span>`
+  ).join('');
+}
+document.querySelector('[name="tva_rates"]').addEventListener('input', updateTvaPreview);
+updateTvaPreview();
+
+// Upload logo
+async function uploadLogo() {
+  const file = document.getElementById('logoFile').files[0];
+  if (!file) { alert('Choisissez un fichier d\'abord'); return; }
+  const fd = new FormData();
+  fd.append('logo_file', file);
+  const res = await fetch('{{ BASE }}/upload-logo', {method:'POST', body:fd});
+  const data = await res.json();
+  if (data.ok) {
+    document.getElementById('logoUrl').value = data.url;
+    alert('✅ Logo uploadé — cliquez Enregistrer pour sauvegarder');
+    location.reload();
+  } else {
+    alert('Erreur: ' + (data.error || 'inconnue'));
+  }
+}
+</script>
+{% endblock %}

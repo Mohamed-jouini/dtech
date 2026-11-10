@@ -1,0 +1,9 @@
+# À ajouter dans ton Caddyfile, DANS le bloc cabinet.mwj-lawyers.com { }
+
+handle /maktaba-qanouniya* {
+    uri strip_prefix /maktaba-qanouniya
+    reverse_proxy localhost:5006 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Host {host}
+    }
+}

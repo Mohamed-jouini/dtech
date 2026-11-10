@@ -1,0 +1,33 @@
+services:
+  agenda-jalsat:
+    build: .
+    container_name: agenda-jalsat
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5001:5001"
+    volumes:
+      - jalsat-data:/data
+      - fiche-client-app_fiche-data:/clients-data
+      - tawer-qadaya_tawer-data:/tawer-data
+    environment:
+      - DB_PATH=/data/jalsat.db
+      - CLIENTS_DB_PATH=/clients-data/clients.db
+      - TAWER_DB_PATH=/tawer-data/qadaya.db
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/agenda-jalsat
+      - FICHE_CLIENT_BASE=/fiche-client
+      - AUDIT_URL=http://audit-app:5010/api/log
+      - PORT=5001
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  jalsat-data:
+  fiche-client-app_fiche-data:
+    external: true
+  tawer-qadaya_tawer-data:
+    external: true

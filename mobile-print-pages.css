@@ -1,0 +1,30 @@
+/* ===== MOBILE (pages imprimables : factures/devis PDF, fiche a imprimer) =====
+   Uniquement a l'ecran sur petit telephone : l'impression et le rendu A4 ne changent pas. */
+@media screen and (max-width:700px){
+  html{-webkit-text-size-adjust:100%}
+  body{padding:56px 10px 16px!important;overflow-x:hidden}
+  .no-print{padding-top:0}
+  body > .no-print:first-child{padding:0}
+  .btn-print{top:8px!important;min-height:40px}
+  .page-header{flex-direction:column;gap:12px}
+  .header-right{flex-wrap:wrap;width:100%;gap:8px}
+  .doc-box{flex:1 1 90px;min-width:0!important}
+  .doc-box-title,.doc-box-value{padding-left:8px;padding-right:8px}
+  .parties{grid-template-columns:1fr!important;gap:14px}
+  .lignes-table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .lignes-table td:first-child,.lignes-table th:first-child{min-width:150px}
+  .totaux-section{justify-content:stretch}
+  .totaux-box{min-width:0!important;width:100%}
+  .doc-body-wrapper{padding-bottom:0}
+  .doc-footer{position:static!important;flex-direction:column;align-items:flex-start;padding:10px 12px!important;margin-top:14px}
+  .footer-mention{position:static!important;margin:12px 0}
+  .watermark{font-size:56px!important}
+  [style*="min-width:120px"]{min-width:0!important}
+  /* fiche a imprimer */
+  .grid{grid-template-columns:1fr!important}
+  .column:first-child{border-left:none!important;border-bottom:1px solid #e0e0e0}
+  .row{flex-wrap:wrap;gap:4px}
+  .no-print button,.no-print a{display:inline-block;min-height:40px;margin:4px!important}
+  pre{white-space:pre-wrap;word-break:break-word}
+}
+/* ===== fin MOBILE pages imprimables ===== */

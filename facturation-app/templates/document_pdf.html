@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ DOC_TYPES.get(doc.type,{}).get('label','') }} {{ doc.numero }}</title>
+<style>
+  @page { size: A4; margin: 15mm 18mm 20mm 18mm; }
+  @media print {
+    body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 12px; color: #1a2332; background: white; }
+
+  .btn-print {
+    position: fixed; top: 15px; right: 15px;
+    background: #1F4E79; color: white; border: none;
+    padding: 10px 20px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; font-weight: 600; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+
+  /* ══ HEADER ══ */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #1F4E79;
+    padding-bottom: 14px;
+  }
+  .header-left { display: flex; flex-direction: column; align-items: flex-start; }
+  .header-logo { margin-bottom: 6px; }
+  .header-logo img { max-height: 70px; max-width: 180px; object-fit: contain; }
+  .header-logo-placeholder {
+    width: 160px; height: 60px;
+    border: 2px dashed #c9d8ec; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #a0aec0; font-size: 12px; font-weight: 700;
+  }
+  .header-tagline { font-size: 11px; color: #4a90d9; font-style: italic; margin-top: 4px; }
+
+  .header-right {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .doc-box {
+    border: 1.5px solid #1F4E79;
+    border-radius: 6px;
+    text-align: center;
+    min-width: 130px;
+    overflow: hidden;
+  }
+  .doc-box-title {
+    background: #1F4E79;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 14px;
+    letter-spacing: 0.5px;
+  }
+  .doc-box-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1F4E79;
+    padding: 7px 14px;
+  }
+
+  /* ══ PARTIES ══ */
+  .parties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 18px;
+  }
+  .emetteur { font-size: 12px; line-height: 1.9; }
+  .emetteur .nom { font-size: 13px; font-weight: 700; color: #1F4E79; margin-bottom: 6px; }
+  .emetteur .ligne { display: flex; gap: 0; margin-bottom: 2px; }
+  .emetteur .lbl { font-weight: 700; min-width: 72px; color: #4a5568; }
+  .emetteur .val { color: #1a2332; }
+
+  /* Cadre client avec coins */
+  .client-frame {
+    position: relative;
+    padding: 16px 18px;
+    min-height: 100px;
+  }
+  .client-frame::before, .client-frame::after,
+  .corner-bl, .corner-br {
+    content: ''; position: absolute;
+    width: 14px; height: 14px;
+  }
+  .client-frame::before { top: 0; left: 0; border-top: 2px solid #1F4E79; border-left: 2px solid #1F4E79; }
+  .client-frame::after  { top: 0; right: 0; border-top: 2px solid #1F4E79; border-right: 2px solid #1F4E79; }
+  .corner-bl { bottom: 0; left: 0; border-bottom: 2px solid #1F4E79; border-left: 2px solid #1F4E79; }
+  .corner-br { bottom: 0; right: 0; border-bottom: 2px solid #1F4E79; border-right: 2px solid #1F4E79; }
+  .client-nom { font-size: 13px; font-weight: 700; color: #1a2332; margin-bottom: 6px; }
+  .client-info { font-size: 11px; color: #1a2332; line-height: 1.9; }
+
+  /* ══ LIGNES ══ */
+  .lignes-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 11px; }
+  .lignes-table th {
+    background: #1F4E79; color: white;
+    padding: 7px 10px; text-align: right; font-size: 10px; font-weight: 700;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .lignes-table th:first-child { text-align: left; }
+  .lignes-table td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; text-align: right; vertical-align: top; }
+  .lignes-table td:first-child { text-align: left; }
+  .lignes-table tr:nth-child(even) td { background: #f5f8ff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* ══ TOTAUX ══ */
+  .totaux-section { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+  .totaux-box { min-width: 250px; border: 1.5px solid #c9d8ec; border-radius: 5px; overflow: hidden; }
+  .total-row { display: flex; justify-content: space-between; padding: 5px 12px; font-size: 11px; border-bottom: 1px solid #e2e8f0; }
+  .total-row.net {
+    background: #1F4E79; color: white; font-weight: 700; font-size: 13px; border: none;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+
+  /* ══ PIED DE PAGE ══ */
+  .doc-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1F4E79;
+    color: rgba(255,255,255,.9);
+    padding: 10px 18mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-size: 10px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .footer-col { flex: 1; line-height: 1.8; }
+  .footer-col.center { text-align: center; }
+  .footer-col.right  { text-align: right; }
+  .footer-mention {
+    position: fixed;
+    bottom: 38px;
+    left: 18mm; right: 18mm;
+    font-size: 9px; color: #718096;
+    text-align: center; font-style: italic;
+    border-top: 1px solid #e2e8f0; padding-top: 5px;
+  }
+  /* Espace pour éviter que le contenu passe sous le footer */
+  .doc-body-wrapper { padding-bottom: 60px; }
+
+  /* Notes */
+  .notes-box { background: #fffbf0; border-left: 3px solid #e67e22; padding: 7px 12px; margin-bottom: 12px; font-size: 11px; border-radius: 0 4px 4px 0; }
+
+  /* Watermark */
+  {% if doc.statut == 'paye' %}
+  .watermark { position: fixed; top: 42%; left: 50%; transform: translate(-50%,-50%) rotate(-30deg); font-size: 110px; font-weight: 900; opacity: 0.05; color: #27ae60; pointer-events: none; }
+  {% elif doc.statut == 'annule' %}
+  .watermark { position: fixed; top: 42%; left: 50%; transform: translate(-50%,-50%) rotate(-30deg); font-size: 110px; font-weight: 900; opacity: 0.07; color: #e74c3c; pointer-events: none; }
+  {% endif %}
+</style>
+<style id="mobile-responsive-v1">
+/* ===== MOBILE (pages imprimables : factures/devis PDF, fiche a imprimer) =====
+   Uniquement a l'ecran sur petit telephone : l'impression et le rendu A4 ne changent pas. */
+@media screen and (max-width:700px){
+  html{-webkit-text-size-adjust:100%}
+  body{padding:56px 10px 16px!important;overflow-x:hidden}
+  .no-print{padding-top:0}
+  body > .no-print:first-child{padding:0}
+  .btn-print{top:8px!important;min-height:40px}
+  .page-header{flex-direction:column;gap:12px}
+  .header-right{flex-wrap:wrap;width:100%;gap:8px}
+  .doc-box{flex:1 1 90px;min-width:0!important}
+  .doc-box-title,.doc-box-value{padding-left:8px;padding-right:8px}
+  .parties{grid-template-columns:1fr!important;gap:14px}
+  .lignes-table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .lignes-table td:first-child,.lignes-table th:first-child{min-width:150px}
+  .totaux-section{justify-content:stretch}
+  .totaux-box{min-width:0!important;width:100%}
+  .doc-body-wrapper{padding-bottom:0}
+  .doc-footer{position:static!important;flex-direction:column;align-items:flex-start;padding:10px 12px!important;margin-top:14px}
+  .footer-mention{position:static!important;margin:12px 0}
+  .watermark{font-size:56px!important}
+  [style*="min-width:120px"]{min-width:0!important}
+  /* fiche a imprimer */
+  .grid{grid-template-columns:1fr!important}
+  .column:first-child{border-left:none!important;border-bottom:1px solid #e0e0e0}
+  .row{flex-wrap:wrap;gap:4px}
+  .no-print button,.no-print a{display:inline-block;min-height:40px;margin:4px!important}
+  pre{white-space:pre-wrap;word-break:break-word}
+}
+/* ===== fin MOBILE pages imprimables ===== */
+</style>
+</head>
+<body>
+
+{% if doc.statut == 'paye' %}<div class="watermark">PAYÉ</div>{% endif %}
+{% if doc.statut == 'annule' %}<div class="watermark">ANNULÉ</div>{% endif %}
+
+<button class="btn-print no-print" onclick="window.print();window.onafterprint=function(){window.close();}">🖨️ Imprimer</button>
+
+<!-- ══ HEADER ══ -->
+<div class="page-header">
+  <div class="header-left">
+    <div class="header-logo">
+      {% if cabinet.logo_url %}
+        <img src="{{ cabinet.logo_url }}" alt="Logo">
+      {% else %}
+        <div class="header-logo-placeholder">LOGO</div>
+      {% endif %}
+    </div>
+    {% if cabinet.raison_sociale %}
+    <div class="header-tagline">{{ cabinet.raison_sociale }}</div>
+    {% endif %}
+  </div>
+
+  <div class="header-right">
+    <div class="doc-box">
+      <div class="doc-box-title">{{ DOC_TYPES.get(doc.type,{}).get('label','Document') }} N°</div>
+      <div class="doc-box-value">{{ doc.numero }}</div>
+    </div>
+    <div class="doc-box">
+      <div class="doc-box-title">Date</div>
+      <div class="doc-box-value">{{ doc.date_doc | date_fr }}</div>
+    </div>
+    {% if doc.date_echeance %}
+    <div class="doc-box">
+      <div class="doc-box-title">Échéance</div>
+      <div class="doc-box-value">{{ doc.date_echeance | date_fr }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="doc-body-wrapper">
+<!-- ══ PARTIES ══ -->
+<div class="parties">
+  <!-- Émetteur -->
+  <div class="emetteur">
+    <div class="nom">{{ cabinet.raison_sociale }}</div>
+    {% if cabinet.adresse %}
+    <div class="ligne"><span class="val">{{ cabinet.adresse }}</span></div>
+    {% endif %}
+    {% if cabinet.tel %}
+    <div class="ligne"><span class="lbl">Tél</span><span class="val">: {{ cabinet.tel }}</span></div>
+    {% endif %}
+    {% if cabinet.email %}
+    <div class="ligne"><span class="lbl">Email</span><span class="val">: {{ cabinet.email }}</span></div>
+    {% endif %}
+    {% if cabinet.matricule_fiscal %}
+    <div class="ligne"><span class="lbl">MF</span><span class="val">: {{ cabinet.matricule_fiscal }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Client dans cadre avec coins -->
+  <div class="client-frame">
+    <div class="corner-bl"></div>
+    <div class="corner-br"></div>
+    <div class="client-nom">{{ doc.client_nom or '—' }}</div>
+    <div class="client-info">
+      {% if doc.client_adresse %}{{ doc.client_adresse }}<br>{% endif %}
+      {% if doc.client_mf %}{{ doc.client_mf }}<br>{% endif %}
+      {% if doc.client_tel %}Tél : {{ doc.client_tel }}{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Notes -->
+{% if doc.notes %}
+<div class="notes-box">{{ doc.notes }}</div>
+{% endif %}
+
+<!-- ══ LIGNES ══ -->
+<table class="lignes-table">
+  <thead>
+    <tr>
+      <th style="width:42%">Description</th>
+      <th style="width:8%">Qté</th>
+      <th style="width:13%">P.U. HT</th>
+      <th style="width:8%">Remise</th>
+      <th style="width:7%">TVA</th>
+      <th style="width:11%">Total HT</th>
+      <th style="width:11%">Total TTC</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in totaux.lignes %}
+    {% set ht  = l.quantite * l.prix_unitaire * (1 - l.remise/100) %}
+    {% set ttc = ht * (1 + l.tva/100) %}
+    <tr>
+      <td>{{ l.description }}</td>
+      <td>{{ l.quantite }}</td>
+      <td>{{ "%.3f"|format(l.prix_unitaire) }}</td>
+      <td>{% if l.remise %}{{ l.remise }}%{% else %}—{% endif %}</td>
+      <td>{{ l.tva|int }}%</td>
+      <td><strong>{{ "%.3f"|format(ht) }}</strong></td>
+      <td><strong>{{ "%.3f"|format(ttc) }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ══ TOTAUX ══ -->
+<div class="totaux-section">
+  <div class="totaux-box">
+    <div class="total-row"><span>Total HT</span><span>{{ "%.3f"|format(totaux.ht) }} TND</span></div>
+    <div class="total-row"><span>TVA</span><span>{{ "%.3f"|format(totaux.tva) }} TND</span></div>
+    <div class="total-row"><span>Total TTC</span><span>{{ "%.3f"|format(totaux.ttc) }} TND</span></div>
+    {% if totaux.timbre %}
+    <div class="total-row"><span>Timbre fiscal</span><span>{{ "%.3f"|format(totaux.timbre) }} TND</span></div>
+    {% endif %}
+    <div class="total-row net"><span>Net à payer</span><span>{{ "%.3f"|format(totaux.net) }} TND</span></div>
+  </div>
+</div>
+
+{% if totaux.net_lettres %}
+<div style="background:#f0f6ff;border:1px solid #c9d8ec;border-radius:5px;padding:9px 14px;margin:10px 0 14px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+  <span style="font-size:10px;color:#4a5568;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Arrêté à la somme de :</span><br>
+  <span style="font-size:12px;font-weight:700;color:#1F4E79;text-transform:capitalize">{{ totaux.net_lettres }}</span>
+</div>
+{% endif %}
+</div><!-- /doc-body-wrapper -->
+
+<!-- ══ PIED DE PAGE ══ -->
+<div class="doc-footer">
+  <div class="footer-col">
+    <strong>{{ cabinet.raison_sociale }}</strong><br>
+    {% if cabinet.adresse %}{{ cabinet.adresse }}<br>{% endif %}
+    {% if cabinet.matricule_fiscal %}MF : {{ cabinet.matricule_fiscal }}{% endif %}
+  </div>
+  <div class="footer-col center">
+    {% if cabinet.tel %}Tél : {{ cabinet.tel }}<br>{% endif %}
+    {% if cabinet.email %}{{ cabinet.email }}{% endif %}
+  </div>
+  <div class="footer-col right">
+    {% if cabinet.rib %}
+    <strong>RIB :</strong><br>{{ cabinet.rib }}
+    {% endif %}
+  </div>
+</div>
+
+{% if cabinet.mention_legale %}
+<div class="footer-mention">{{ cabinet.mention_legale }}</div>
+{% endif %}
+
+</body>
+</html>

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}مهامي{% endblock %}
+{% block extra_script %}
+<script>
+let countdown = 30;
+let timer = null;
+
+const counter = document.createElement('div');
+counter.style.cssText = 'position:fixed;bottom:16px;left:16px;background:rgba(30,76,134,.85);color:white;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;z-index:999;cursor:pointer;user-select:none;';
+counter.title = 'انقر للتحديث الآن';
+counter.onclick = function() { clearInterval(timer); location.reload(); };
+document.body.appendChild(counter);
+
+function tick() {
+  counter.textContent = '🔄 تحديث خلال ' + countdown + 'ث';
+  if (countdown <= 0) {
+    clearInterval(timer);
+    counter.textContent = '🔄 جاري التحديث...';
+    location.reload();
+    return;
+  }
+  countdown--;
+}
+
+tick();
+timer = setInterval(tick, 1000);
+</script>
+{% endblock %}
+{% block extra_style %}
+<style>
+  .task-row { background:var(--white); border-radius:8px; box-shadow:0 1px 4px rgba(30,76,134,.08); padding:10px 14px; margin-bottom:8px; border-right:3px solid var(--border); display:flex; align-items:center; gap:10px; }
+  .task-row.haute   { border-right-color:#C25B4A; }
+  .task-row.normale { border-right-color:#3E7FD1; }
+  .task-row.basse   { border-right-color:#34B457; }
+  .task-row.terminee { opacity:.6; }
+  .task-row.unread  { background:#F3F1EC; }
+  .task-icon { font-size:18px; flex-shrink:0; }
+  .task-body { flex:1; min-width:0; }
+  .task-titre { font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .task-sub { font-size:11px; color:var(--text2); margin-top:2px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .task-actions { display:flex; gap:5px; align-items:center; flex-shrink:0; }
+  .tag-sm { padding:1px 8px; border-radius:8px; font-size:10px; font-weight:700; }
+  .notif-dot { width:8px; height:8px; border-radius:50%; background:#C25B4A; display:inline-block; flex-shrink:0; }
+  .col-header { background:var(--white); border-radius:10px; padding:12px 16px; margin-bottom:10px; box-shadow:var(--shadow); display:flex; align-items:center; justify-content:space-between; border-top:3px solid var(--blue2); }
+  .col-header h3 { font-size:14px; font-weight:700; color:var(--blue); margin:0; }
+  .status-mini { padding:4px 8px; border:1px solid var(--border); border-radius:6px; font-size:11px; font-family:inherit; cursor:pointer; background:var(--white); }
+  .empty-sm { text-align:center; padding:20px; color:var(--text2); font-size:13px; background:var(--white); border-radius:8px; }
+  .search-bar { background:var(--white); border-radius:10px; padding:12px 16px; margin-bottom:14px; box-shadow:var(--shadow); display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .two-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:700px){ .two-cols { grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if is_admin(user.uid) %}
+<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+  <a href="{{ BASE }}/nouvelle" class="btn btn-primary">＋ مهمة جديدة</a>
+</div>
+{% endif %}
+
+<!-- BARRE DE RECHERCHE UNIFIÉE -->
+<form method="GET" class="search-bar">
+  <input type="text" name="q" value="{{ recherche }}"
+         placeholder="🔍 بحث بالعنوان أو الوصف أو المستخدم..."
+         style="flex:2;min-width:180px;padding:7px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit">
+  <select name="statut" style="flex:1;min-width:130px;padding:7px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit">
+    <option value="">📋 كل الحالات</option>
+    {% for k,v in STATUTS.items() %}
+    <option value="{{ k }}" {% if k==filtre_statut %}selected{% endif %}>{{ v.icon }} {{ v.label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary" style="padding:7px 16px">بحث</button>
+  {% if recherche or filtre_statut %}
+  <a href="{{ BASE }}/" class="btn btn-secondary" style="padding:7px 16px">✕ مسح</a>
+  {% endif %}
+</form>
+
+<!-- DEUX COLONNES -->
+<div class="two-cols">
+
+  <!-- COLONNE GAUCHE: AFFECTÉES À MOI -->
+  <div>
+    <div class="col-header">
+      <h3>📥 الموجهة إليّ</h3>
+      <span style="background:var(--blue3);color:white;border-radius:10px;padding:1px 10px;font-size:11px;font-weight:700">{{ mes_taches|length }}</span>
+    </div>
+
+    {% if not mes_taches %}
+    <div class="empty-sm">لا توجد مهام 🎉</div>
+    {% endif %}
+
+    {% for t in mes_taches %}
+    {% set pr = PRIORITIES.get(t.priorite, {}) %}
+    {% set st = STATUTS.get(t.statut, {}) %}
+    {% set unread = t.id in notifs_ids %}
+    {% set is_late = t.deadline and t.deadline < today and t.statut != 'terminee' %}
+    <div class="task-row {{ t.priorite }} {% if t.statut=='terminee' %}terminee{% endif %} {% if unread %}unread{% endif %}">
+      {% if unread %}<div class="notif-dot"></div>{% endif %}
+      <div class="task-icon">{{ pr.get('icon','📋') }}</div>
+      <div class="task-body">
+        <div class="task-titre">{{ t.titre }}</div>
+        <div class="task-sub">
+          <span class="tag-sm" style="background:{{ st.get('color','#8C867E') }}22;color:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span>
+          {% if t.deadline %}<span style="color:{% if is_late %}#C25B4A{% else %}var(--text2){% endif %}">📅 {{ t.deadline }}</span>{% endif %}
+          <span>من: {{ t.cree_par }}</span>
+          {% if unread %}<span style="color:#C25B4A;font-weight:700">🔔</span>{% endif %}
+        </div>
+      </div>
+      <div class="task-actions">
+        <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/statut">
+          <select name="statut" class="status-mini" onchange="this.form.submit()">
+            {% for k,v in STATUTS.items() %}
+            <option value="{{ k }}" {% if k==t.statut %}selected{% endif %}>{{ v.icon }}</option>
+            {% endfor %}
+          </select>
+        </form>
+        <a href="{{ BASE }}/tache/{{ t.id }}" class="btn btn-sm {% if unread %}btn-primary{% else %}btn-info{% endif %}">{% if unread %}🔔{% else %}👁️{% endif %}</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- COLONNE DROITE: CRÉÉES PAR MOI -->
+  <div>
+    <div class="col-header" style="border-top-color:#34B457">
+      <h3>📤 التي أنشأتها</h3>
+      <span style="background:#34B457;color:white;border-radius:10px;padding:1px 10px;font-size:11px;font-weight:700">{{ taches_creees|length }}</span>
+    </div>
+
+    {% if not taches_creees %}
+    <div class="empty-sm">لم تُنشئ أي مهام بعد</div>
+    {% endif %}
+
+    {% for t in taches_creees %}
+    {% set pr = PRIORITIES.get(t.priorite, {}) %}
+    {% set st = STATUTS.get(t.statut, {}) %}
+    {% set unread = t.id in notifs_ids %}
+    {% set is_late = t.deadline and t.deadline < today and t.statut != 'terminee' %}
+    <div class="task-row {{ t.priorite }} {% if t.statut=='terminee' %}terminee{% endif %} {% if unread %}unread{% endif %}">
+      {% if unread %}<div class="notif-dot"></div>{% endif %}
+      <div class="task-icon">{{ pr.get('icon','📋') }}</div>
+      <div class="task-body">
+        <div class="task-titre">{{ t.titre }}</div>
+        <div class="task-sub">
+          <span class="tag-sm" style="background:{{ st.get('color','#8C867E') }}22;color:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span>
+          {% for u in t.assigne_a.split(',') %}<span>👤 {{ u.strip() }}</span>{% endfor %}
+          {% if t.deadline %}<span style="color:{% if is_late %}#C25B4A{% else %}var(--text2){% endif %}">📅 {{ t.deadline }}</span>{% endif %}
+          {% if unread %}<span style="color:#C25B4A;font-weight:700">🔔 رد</span>{% endif %}
+        </div>
+      </div>
+      <div class="task-actions">
+        <a href="{{ BASE }}/tache/{{ t.id }}" class="btn btn-sm {% if unread %}btn-primary{% else %}btn-secondary{% endif %}">{% if unread %}🔔{% else %}👁️{% endif %}</a>
+        <a href="{{ BASE }}/tache/{{ t.id }}/edit" class="btn btn-info btn-sm">✏️</a>
+        {% if is_admin(user.uid) %}
+        <form method="POST" action="{{ BASE }}/tache/{{ t.id }}/delete" onsubmit="return confirm('حذف؟')">
+          <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+services:
+  facturation-app:
+    build: .
+    container_name: facturation-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5007:5007"
+    volumes:
+      - facturation-data:/data
+    environment:
+      - DB_PATH=/data/facturation.db
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/facturation
+      - PORT=5007
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  facturation-data:

@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_self">
+  <title>أجندة الجلسات</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #EFECE6; direction: rtl; }
+
+    .header { background: rgba(255,255,255,.62); color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 20px; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-new { background: white; color: #3E7FD1; padding: 9px 18px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; }
+    .btn-new:hover { background: #e0ecf8; }
+
+    /* Toolbar global */
+    .global-toolbar { background: white; padding: 12px 24px; border-bottom: 1px solid #E4DFD7; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
+
+    .search-global { display: flex; align-items: center; gap: 6px; }
+    .search-global input { padding: 8px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; direction: rtl; width: 280px; }
+    .search-global input:focus { outline: none; border-color: #3E7FD1; box-shadow: 0 0 0 3px rgba(62,127,209,0.1); }
+    .search-global button { background: #3E7FD1; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: inherit; }
+    .search-global button:hover { background: #2C65AE; }
+    .search-global .btn-clear { background: #aaa; padding: 8px 12px; }
+
+    .display-mode { display: flex; align-items: center; gap: 6px; }
+    .display-mode label { font-size: 13px; color: #555; font-weight: bold; }
+    .display-mode select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; direction: rtl; font-family: inherit; cursor: pointer; }
+    .display-mode select:focus { outline: none; border-color: #3E7FD1; }
+
+    /* Year nav */
+    .year-nav { display: flex; align-items: center; gap: 10px; background: #F7F5F1; padding: 10px 24px; border-bottom: 1px solid #E4DFD7; justify-content: center; }
+    .year-nav button { background: #3E7FD1; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    .year-nav button:hover { background: #2C65AE; }
+    .year-nav h2 { font-size: 20px; color: #333; min-width: 180px; text-align: center; }
+
+    .container { max-width: 1400px; margin: 16px auto; padding: 0 20px; }
+
+    /* Search results banner */
+    .search-banner { background: #E9F0FA; padding: 10px 20px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .search-banner span { font-size: 14px; color: #2C65AE; font-weight: bold; }
+    .search-banner button { background: #3E7FD1; color: white; border: none; padding: 5px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: inherit; }
+
+    .month-block { margin-bottom: 30px; }
+    .month-header { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; background: rgba(255,255,255,.62); padding: 14px 20px; border-radius: 10px; }
+    .month-header h3 { font-size: 24px; color: white; font-weight: bold; }
+    .month-header .month-icon { font-size: 28px; }
+    .month-header .count { background: rgba(255,255,255,0.25); color: white; font-size: 13px; padding: 4px 14px; border-radius: 14px; font-weight: bold; }
+
+    .month-toolbar { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
+    .month-toolbar .btn-add { background: none; border: 1px solid #3E7FD1; color: #3E7FD1; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: inherit; }
+    .month-toolbar .btn-add:hover { background: #E9F0FA; }
+
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    th { background: #F7F5F1; padding: 8px 10px; text-align: right; font-size: 11px; color: #555; border-bottom: 2px solid #E4DFD7; white-space: nowrap; }
+    td { padding: 7px 10px; border-bottom: 1px solid #eee; font-size: 12px; }
+    td.date-col { min-width: 110px; white-space: nowrap; }
+    tr:hover td { background: #EEF3FA; }
+    tr { cursor: pointer; }
+
+    .day-header { background: #E6EEF9; }
+    .day-header td { font-weight: bold; color: #2C65AE; font-size: 13px; padding: 6px 14px; border-bottom: 1px solid #D2DDEC; border-top: 2px solid #D2DDEC; }
+
+    .actions-cell { display: flex; gap: 3px; }
+    .btn-sm { padding: 3px 8px; border-radius: 3px; text-decoration: none; font-size: 11px; border: none; cursor: pointer; color: white; }
+    .btn-edit { background: #3E7FD1; }
+    .btn-del { background: #C25B4A; }
+
+    .empty-row { text-align: center; color: #bbb; font-size: 12px; padding: 12px; }
+    .hidden { display: none; }
+
+    .badge-tawer { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    .badge-jariya { background: #d4edda; color: #155724; }
+    .badge-tasrih { background: #fff3cd; color: #856404; }
+    .badge-mahkoum { background: #E9F0FA; color: #2C65AE; }
+
+    .btn-print { background: #34B457; color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; font-family: inherit; font-weight: bold; }
+    .btn-print:hover { background: #2A9949; }
+
+    @media print {
+      .header, .global-toolbar, .year-nav, .month-toolbar, .actions-cell, .search-banner .btn-print, button { display: none !important; }
+      .search-banner { display: block !important; background: #eee !important; }
+      .search-banner button { display: none !important; }
+      body { background: white; font-size: 11px; }
+      .container { max-width: 100%; padding: 0; margin: 0; }
+      .month-block { page-break-inside: avoid; margin-bottom: 20px; }
+      table { font-size: 10px; box-shadow: none; }
+      th { background: #ddd !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      td { padding: 5px 6px; }
+      .month-header h3 { font-size: 16px; }
+      .month-header .count { background: #333 !important; color: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      /* Afficher un titre en haut de l'impression */
+      .container::before { content: "📅 أجندا الجلسات — طباعة"; display: block; text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 16px; color: #333; }
+      @page { size: A4 landscape; margin: 8mm; }
+    }
+  
+/* ===== THEME AVOCAT v2 =============================================
+   Ajoute dans le style de la page (jamais dans les fenetres d'impression).
+   Les couleurs d'origine sont deja remappees a la source ; ce bloc
+   harmonise les surfaces, la navigation et les en-tetes.
+   ================================================================== */
+:root{
+  --av-blue:#3E7FD1; --av-blue-d:#2C65AE; --av-blue-dd:#1E4C86;
+  --av-ink:#2B2A28; --av-ink-2:#5C5852; --av-ink-3:#8C867E;
+  --av-brd:rgba(255,255,255,.85);
+  --av-line:rgba(120,112,102,.22);
+  --av-glass:rgba(255,255,255,.62);
+  --av-card:rgba(255,255,255,.74);
+  --av-card-2:rgba(255,255,255,.90);
+  --av-shadow:0 6px 24px rgba(72,64,54,.10);
+  --av-shadow-h:0 14px 36px rgba(72,64,54,.18);
+  --av-green:#34B457; --av-sand:#B5862B; --av-red:#C25B4A;
+  --av-ui:'Noto Sans Arabic','Tajawal','Segoe UI',Tahoma,Arial,sans-serif;
+}
+
+/* ---- Page ---- */
+body{
+  background:linear-gradient(155deg,#EFECE6 0%,#DFDAD1 52%,#E9E5DE 100%) fixed!important;
+  color:var(--av-ink);
+  font-family:var(--av-ui)!important;
+}
+
+/* ---- Barre de navigation commune ---- */
+.topnav{
+  position:sticky;top:0;z-index:9999;flex:none;direction:rtl;
+  padding:5px 14px;
+  background:rgba(255,255,255,.76);
+  backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  border-bottom:1px solid var(--av-line);
+}
+.topnav__list{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.topnav a{
+  color:var(--av-ink-2);text-decoration:none;padding:4px 10px;
+  border-radius:999px;font-size:11.5px;font-weight:600;line-height:1.6;
+  transition:background .15s,color .15s;
+}
+.topnav a:hover{background:rgba(255,255,255,.95);color:var(--av-ink)}
+.topnav a.is-home{background:rgba(62,127,209,.16);color:var(--av-blue-d)}
+.topnav a.is-cloud{background:rgba(168,144,106,.18);color:#8A6A2E}
+.topnav a.is-active{background:#fff;color:var(--av-ink);box-shadow:var(--av-shadow)}
+
+/* pages dont le body a une marge de 20px : barre collee aux bords */
+.topnav.topnav--bleed{margin:-20px -20px 20px}
+
+/* menus internes poses dans un en-tete (ex. facturation) */
+.nav-link{color:var(--av-ink-2)!important}
+.nav-link:hover,.nav-link.active{
+  background:rgba(62,127,209,.12)!important;color:var(--av-blue-d)!important;
+}
+
+/* ---- En-tetes (les degrades d'origine sont convertis en verre) ---- */
+.header,.app-header,.month-header,.view-header,.form-card-header,.card-header{
+  background-image:none!important;
+  background-color:var(--av-glass)!important;
+  backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  color:var(--av-ink)!important;
+  border-bottom:1px solid var(--av-line)!important;
+  box-shadow:none!important;
+}
+.header,.app-header{border-radius:0!important}
+.month-header,.view-header,.form-card-header{
+  border:1px solid var(--av-brd)!important;
+  box-shadow:var(--av-shadow)!important;
+}
+.month-header td{background:var(--av-glass)!important;color:var(--av-ink)!important}
+/* textes blancs herites des en-tetes bleus */
+.header :not(a):not(button):not(input):not(select):not(option),
+.app-header :not(a):not(button):not(input):not(select):not(option),
+.month-header :not(a):not(button),.view-header :not(a):not(button),
+.form-card-header :not(a):not(button),.card-header :not(a):not(button){
+  color:var(--av-ink)!important;
+}
+.header a:not([class]),.app-header a:not([class]){color:var(--av-blue-d)!important}
+.month-header .count{
+  background:rgba(62,127,209,.14)!important;color:var(--av-blue-d)!important;
+  border:1px solid rgba(62,127,209,.32);
+}
+/* petits boutons blancs-sur-bleu poses dans les en-tetes */
+.header button:not([class]),.app-header button:not([class]){
+  background:rgba(255,255,255,.9)!important;color:var(--av-ink)!important;
+  border:1px solid var(--av-line)!important;border-radius:999px!important;
+}
+
+/* ---- Cartes ---- */
+.card,.page,.doc-box{
+  background:var(--av-card)!important;
+  border:1px solid var(--av-brd)!important;
+  border-radius:20px!important;
+  box-shadow:var(--av-shadow)!important;
+  backdrop-filter:blur(14px);
+}
+.card .card,.card .doc-box{box-shadow:none!important;backdrop-filter:none}
+.stat{
+  background:var(--av-card)!important;
+  border:1px solid var(--av-brd)!important;
+  border-radius:18px!important;
+  box-shadow:var(--av-shadow)!important;
+  backdrop-filter:blur(14px);
+}
+.global-toolbar,.year-nav,.filters{
+  background:rgba(255,255,255,.50)!important;
+  border-color:var(--av-line)!important;
+  backdrop-filter:blur(14px);
+}
+
+/* navigation d'annee : texte et fleches lisibles sur le fond clair */
+.year-nav{border:1px solid var(--av-brd)!important}
+.year-nav .year-label,.year-nav h2,.year-nav span{color:var(--av-ink)!important}
+.year-nav button{
+  background:#fff!important;color:var(--av-blue-d)!important;
+  border:1px solid var(--av-line)!important;box-shadow:var(--av-shadow);
+}
+.year-nav button:hover{background:var(--av-blue)!important;color:#fff!important}
+
+/* ---- Tableaux ---- */
+table{
+  background:var(--av-card);
+  border-collapse:separate!important;border-spacing:0;
+  border-radius:16px;overflow:hidden;
+  box-shadow:var(--av-shadow);
+}
+thead th,table > tr:first-child th{
+  background:rgba(255,255,255,.60)!important;
+  color:var(--av-ink-2)!important;
+  border-bottom:1px solid var(--av-line)!important;
+}
+td{border-bottom-color:var(--av-line)!important}
+tbody tr:hover td{background:rgba(255,255,255,.65)}
+
+/* ---- Formulaires ---- */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{
+  background:rgba(255,255,255,.94)!important;
+  color:var(--av-ink);
+  border-color:rgba(120,112,102,.28)!important;
+  border-radius:12px!important;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none!important;
+  border-color:var(--av-blue)!important;
+  box-shadow:0 0 0 3px rgba(62,127,209,.20)!important;
+}
+input[type="checkbox"],input[type="radio"]{accent-color:var(--av-blue)}
+
+/* ---- Boutons ---- */
+.btn,.btn-sm,.btn-new,.btn-add,.btn-save,.btn-print,.btn-back,.btn-primary,
+.btn-secondary,.btn-success,.btn-danger,.btn-del,.btn-edit,.btn-info,.btn-remove{
+  border-radius:999px!important;
+}
+.btn-new,.btn-add,.btn-save,.btn-primary{
+  background:var(--av-blue)!important;color:#fff!important;
+  border-color:var(--av-blue)!important;box-shadow:var(--av-shadow);
+}
+.btn-new:hover,.btn-add:hover,.btn-save:hover,.btn-primary:hover{
+  background:var(--av-blue-d)!important;color:#fff!important;
+}
+.btn-print,.btn-back,.btn-secondary{
+  background:rgba(255,255,255,.88)!important;color:var(--av-ink)!important;
+  border:1px solid var(--av-line)!important;
+}
+.btn-print:hover,.btn-back:hover,.btn-secondary:hover{background:#fff!important;color:var(--av-blue-d)!important}
+.btn-danger,.btn-del,.btn-remove{
+  background:rgba(194,91,74,.14)!important;color:var(--av-red)!important;
+  border:1px solid rgba(194,91,74,.38)!important;
+}
+.btn-danger:hover,.btn-del:hover,.btn-remove:hover{background:rgba(194,91,74,.24)!important}
+
+/* boutons d'alerte poses en style inline (ex. آخر آجال) : garder le rouge */
+.btn-new[style*="#C25B4A"],.btn-add[style*="#C25B4A"]{
+  background:var(--av-red)!important;border-color:var(--av-red)!important;color:#fff!important;
+}
+
+/* ---- Impression : aucun effet de verre ---- */
+@media print{
+  .topnav{display:none!important}
+  body{background:#fff!important}
+  .card,.page,.doc-box,.stat,table,.header,.app-header,.month-header{
+    background:#fff!important;box-shadow:none!important;backdrop-filter:none!important;
+  }
+}
+/* ===== fin THEME AVOCAT v2 ===== */
+
+  
+    /* Jalsa du dernier jour ouvre sans jalsa moqbila : a completer */
+    tr.jalsa-alerte td{background:rgba(194,91,74,.10)!important;color:#9C4132!important;font-weight:600}
+    tr.jalsa-alerte td:first-child{box-shadow:inset -4px 0 0 #C25B4A}
+    tr.jalsa-alerte:hover td{background:rgba(194,91,74,.16)!important}
+  </style>
+<style id="mobile-responsive-v1">
+/* ===== MOBILE RESPONSIVE v1 ==========================================
+   Bloc commun injecte dans toutes les pages (voir inject_mobile.ps1).
+   N'agit qu'en dessous de 820px : le bureau reste inchange.
+   ===================================================================== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+img,video,canvas,iframe,svg{max-width:100%}
+
+@media (max-width:820px){
+  body{overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+  body[style*="padding"],body[style*="margin"]{padding-left:10px!important;padding-right:10px!important}
+
+  /* ---- Barre des applications : une seule ligne defilante ---- */
+  .topnav{padding:4px 8px}
+  .topnav__list{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;gap:4px}
+  .topnav__list::-webkit-scrollbar{display:none}
+  .topnav a{flex:none;white-space:nowrap;padding:8px 12px;font-size:13px}
+  .topnav.topnav--bleed{margin:-10px -10px 12px}
+
+  /* en-tetes FIXES (sticky) : version compacte, le contenu defile dessous */
+  .entete-fixe{position:sticky!important;max-height:42vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .entete-fixe .header,.entete-fixe .app-header{padding:6px 10px!important;gap:6px}
+  .entete-fixe .toolbar,.entete-fixe .global-toolbar,.entete-fixe .filters{
+    padding:6px 10px!important;gap:6px}
+  .entete-fixe .year-nav{padding:4px 8px!important;gap:6px}
+  .entete-fixe input,.entete-fixe select{min-height:36px;padding-top:5px;padding-bottom:5px}
+  .entete-fixe .btn,.entete-fixe .btn-new,.entete-fixe .btn-print,.entete-fixe button{min-height:34px}
+  .entete-fixe .header h1,.entete-fixe .app-header h1{font-size:15px}
+  .entete-fixe .year-nav h2,.entete-fixe .year-nav .year-label{font-size:15px}
+  .display-mode label{display:none}
+
+  /* ---- En-tetes de page ---- */
+  .header,.app-header,.view-header,.form-card-header{
+    flex-wrap:wrap;gap:8px;padding:10px 12px!important;height:auto!important;min-height:0}
+  .header h1,.app-header h1,.view-header h1{font-size:16px}
+  .header-actions,.header-btns,.view-actions{display:flex;flex-wrap:wrap;gap:6px}
+  .app-header{flex-direction:column;align-items:flex-start!important}
+  .nav-links{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:6px}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-link{white-space:nowrap;flex:none}
+
+  /* ---- Conteneurs ---- */
+  .container{padding-left:10px!important;padding-right:10px!important;margin-top:10px!important}
+  .content{padding:12px 10px!important}
+  .flash-zone{padding:0 10px}
+  .card-header{padding:12px 14px!important;flex-wrap:wrap;gap:8px}
+  .card-body{padding:14px}
+  .month-header{flex-wrap:wrap;gap:8px;padding:10px 12px!important}
+  .month-header h3{font-size:18px}
+
+  /* ---- Barres d'outils / recherche / filtres ---- */
+  .global-toolbar,.toolbar,.filters,.search-zone,.table-header,.filter-bar,.month-toolbar{
+    flex-wrap:wrap;gap:8px;padding-left:10px!important;padding-right:10px!important}
+  .search-global,.search-zone,.scope-toggle{width:100%}
+  .display-mode{flex:1 1 0;min-width:0}
+  .global-toolbar .btn-print{flex:none;padding:6px 14px!important}
+  .search-box,.toolbar input,.month-filter,
+  .filters input,.filters select{width:100%!important;min-width:0!important;flex:1 1 100%}
+  .display-mode select{width:100%!important;min-width:0!important}
+  .search-global{display:flex;flex-wrap:nowrap;gap:6px}
+  .search-global input{flex:1 1 auto;width:auto!important;min-width:0!important}
+  .search-global button{flex:none}
+  .year-nav{flex-wrap:wrap;justify-content:center;padding:8px 10px!important}
+  .year-nav h2,.year-nav .year-label{min-width:0!important;font-size:17px}
+  .scope-btn{flex:1}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab-btn{flex:none;white-space:nowrap}
+  .search-banner{flex-wrap:wrap;gap:8px}
+
+  /* ---- Grilles : tout sur une colonne ---- */
+  .form-grid,.row-2,.row-3,.grid,.info-grid,.two-cols,.ctx-grid,
+  .party-row,[style*="grid-template-columns"]{grid-template-columns:minmax(0,1fr)!important}
+  .form-grid>*,.row-2>*,.row-3>*,.grid>*,.info-grid>*,.two-cols>*,.ctx-grid>*,
+  .party-row>*,[style*="grid-template-columns"]>*{min-width:0}
+  .card,.card-body{min-width:0;max-width:100%}
+  .party-header{display:none!important}
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important}
+  .stat-card{padding:14px!important;gap:10px!important}
+  .stat-icon{width:42px!important;height:42px!important;font-size:20px!important}
+  .stat-val{font-size:22px!important}
+  .column:first-child{border-left:none}
+
+  /* ---- Formulaires : cibles tactiles, pas de zoom iOS ---- */
+  input,select,textarea{font-size:16px!important;max-width:100%;min-height:42px}
+  input[type="checkbox"],input[type="radio"]{min-height:0;width:20px;height:20px}
+  textarea{min-height:90px}
+  .case-number input{width:100%!important}
+  label{font-size:13px}
+  .form-row,.field-row,.detail-row,.info-row{flex-wrap:wrap}
+  .field-label,.info-label,.detail-label{min-width:0!important;flex:1 1 100%}
+  .form-actions,.actions-bar,.btn-row,.form-footer{display:flex;flex-wrap:wrap;gap:8px}
+
+  /* ---- Boutons ---- */
+  .btn,.btn-new,.btn-add,.btn-save,.btn-print,.btn-back,.btn-primary,.btn-secondary,
+  .btn-success,.btn-danger,.btn-warning,.btn-info,.btn-edit,.btn-del{
+    min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .btn-sm{min-height:34px;padding:6px 12px!important}
+  .actions,.actions-cell{white-space:normal!important;flex-wrap:wrap;gap:6px}
+
+  /* ---- Tableaux : defilement horizontal ---- */
+  table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th{padding:8px!important}
+  td{padding:8px!important}
+  .table-wrap{overflow-x:auto}
+
+  /* ---- Fenetres modales ---- */
+  .modal-overlay{align-items:flex-end!important;padding:0}
+  .modal{min-width:0!important;width:100%!important;max-width:100%!important;
+    max-height:92vh;overflow-y:auto;padding:18px!important;border-radius:16px 16px 0 0!important}
+  .total-box,[style*="min-width:2"],[style*="min-width:1"]{min-width:0!important}
+  [style*="width:400px"],[style*="width:250px"],[style*="width:300px"]{width:100%!important}
+
+  /* ---- Divers ---- */
+  .file-item{flex-wrap:wrap}
+  pre{white-space:pre-wrap;word-break:break-word}
+}
+
+@media (max-width:480px){
+  .stats-grid{grid-template-columns:1fr!important}
+  .header h1,.app-header h1{font-size:15px}
+  .btn-new,.header-actions .btn-new{flex:1 1 auto;text-align:center}
+  .month-header h3{font-size:16px}
+  .topnav a{padding:7px 10px;font-size:12.5px}
+}
+/* ===== fin MOBILE RESPONSIVE v1 ===== */
+</style>
+</head>
+<body><nav class="topnav">
+  <div class="topnav__list">
+    <a href="/apps/dashboard/" class="is-home">🏠</a>
+    <a href="/apps/files/?dir=/Affaires%20juridiques" target="_blank" rel="noopener" class="is-cloud">☁️ ملفات القضايا</a>
+    <a href="/fiche-client/">👤 معطيات القضايا</a>
+    <a href="/clients-perso/">🗂️ المعطيات الشخصية</a>
+    <a href="/agenda-jalsat/" class="is-active">📅 أجندة</a>
+    <a href="/huissiers/">⚖️ العدول</a>
+    <a href="/taches-huissiers/">📝 مهام العدول</a>
+    <a href="/tawer-qadaya/">📋 طور القضايا</a>
+    <a href="/mes-taches/">✅ مهامي</a>
+    <a href="/shakayat/">📢 الشكايات</a>
+    <a href="/facturation/">🧾 الفوترة</a>
+    <a href="/archive/">🗄️ الأرشيف</a>
+    <a href="/maktaba-qanouniya/">📚 المكتبة</a>
+    <a href="/audit/">📊 السجل</a>
+  </div>
+</nav>
+
+<div class="header">
+  <h1>📅 أجندة الجلسات</h1>
+  <div class="header-actions">
+    <a href="{{ BASE }}/jalsa/new" class="btn-new">➕ جلسة جديدة</a>
+    <a href="{{ BASE }}/akhir-ajal" class="btn-new" style="background:#C25B4A;color:white">⏳ آخر آجال</a>
+  </div>
+</div>
+
+<!-- Toolbar global : recherche + mode affichage -->
+<div class="global-toolbar">
+  <div class="search-global">
+    <input type="text" id="globalSearch" placeholder="🔍 بحث في جميع الأشهر..." onkeydown="if(event.key==='Enter')doSearch()">
+    <button onclick="doSearch()">بحث</button>
+    <button class="btn-clear" onclick="clearSearch()">✕</button>
+  </div>
+
+  <div class="display-mode">
+    <label>📋 العرض :</label>
+    <select id="displayMode" onchange="renderYear()">
+      <option value="all">جميع الأشهر</option>
+      <option value="single">شهر واحد</option>
+      <optgroup label="اختر شهراً">
+        <option value="01">جانفي</option>
+        <option value="02">فيفري</option>
+        <option value="03">مارس</option>
+        <option value="04">أفريل</option>
+        <option value="05">ماي</option>
+        <option value="06">جوان</option>
+        <option value="07">جويلية</option>
+        <option value="08">أوت</option>
+        <option value="09">سبتمبر</option>
+        <option value="10">أكتوبر</option>
+        <option value="11">نوفمبر</option>
+        <option value="12">ديسمبر</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+</div>
+
+<!-- Navigation année -->
+<div class="year-nav">
+  <button onclick="changeYear(-1)">→</button>
+  <h2 id="yearTitle"></h2>
+  <button onclick="changeYear(1)">←</button>
+</div>
+
+<div class="container" id="monthsContainer"></div>
+
+<script>
+const B = '{{ BASE }}';
+const FB = '{{ FICHE_BASE }}';
+let currentYear = new Date().getFullYear();
+let globalSearchTerm = '';
+let allJalsatCache = [];
+
+const MONTHS_AR = ['جانفي','فيفري','مارس','أفريل','ماي','جوان','جويلية','أوت','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const DAYS_AR = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+
+function formatDayArabic(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+  const dayName = DAYS_AR[d.getDay()];
+  const dayNum = parseInt(parts[2]);
+  const monthName = MONTHS_AR[parseInt(parts[1])-1];
+  return `${dayName} ${dayNum} ${monthName}`;
+}
+
+function changeYear(delta) {
+  currentYear += delta;
+  renderYear();
+}
+
+// ============================================================
+// Recherche globale
+// ============================================================
+function doSearch() {
+  globalSearchTerm = document.getElementById('globalSearch').value.trim().toLowerCase();
+  renderYear();
+}
+
+function clearSearch() {
+  globalSearchTerm = '';
+  document.getElementById('globalSearch').value = '';
+  renderYear();
+}
+
+// ============================================================
+// Rendu principal
+// ============================================================
+async function renderYear() {
+  document.getElementById('yearTitle').textContent = `📅 أجندا ${currentYear}`;
+
+  const resp = await fetch(`${B}/api/jalsat`);
+  allJalsatCache = await resp.json();
+
+  // Filtrer par recherche globale
+  let filtered = allJalsatCache;
+  if (globalSearchTerm) {
+    filtered = filtered.filter(j => {
+      const text = [j.mahkama, j.adad_qadiya, j.daira, j.manoub, j.mustafid, j.ded, j.gharad, j.gharad_jalsa_moqbila].join(' ').toLowerCase();
+      return text.includes(globalSearchTerm);
+    });
+  }
+
+  // Grouper par mois
+  const byMonth = {};
+  for (let m = 0; m < 12; m++) {
+    const key = `${currentYear}-${String(m+1).padStart(2,'0')}`;
+    byMonth[key] = [];
+  }
+
+  filtered.forEach(j => {
+    const d = j.jalsa || j.jalsa_moqbila || '';
+    if (d.startsWith(String(currentYear))) {
+      const month = d.slice(0, 7);
+      if (byMonth[month]) byMonth[month].push(j);
+    }
+  });
+
+  // Mode d'affichage
+  const mode = document.getElementById('displayMode').value;
+  let monthsToShow = [];
+
+  if (mode === 'all') {
+    monthsToShow = Array.from({length: 12}, (_, i) => i);
+  } else if (mode === 'single') {
+    // Afficher le mois courant
+    const cm = new Date().getMonth();
+    monthsToShow = [cm];
+  } else {
+    // Mois spécifique (01-12)
+    monthsToShow = [parseInt(mode) - 1];
+  }
+
+  // Banner de recherche
+  let html = '';
+  if (globalSearchTerm) {
+    const totalResults = Object.values(byMonth).reduce((a, b) => a + b.length, 0);
+    html += `<div class="search-banner">
+      <span>🔍 نتائج البحث عن "${globalSearchTerm}" — ${totalResults} نتيجة</span>
+      <button onclick="clearSearch()">مسح البحث</button>
+    </div>`;
+  }
+
+  // Rendu des mois
+  // Jalsat a completer : du dernier jour ouvre jusqu'a hier
+  const _iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const _hier = new Date(); _hier.setDate(_hier.getDate() - 1);
+  const _ouvre = new Date(_hier);
+  while (_ouvre.getDay() === 0 || _ouvre.getDay() === 6) { _ouvre.setDate(_ouvre.getDate() - 1); }
+  const _alerteDe = _iso(_ouvre), _alerteA = _iso(_hier);
+  const _aCompleter = j => !!j.jalsa && j.jalsa <= _alerteA
+                           && !j.jalsa_moqbila && j.tawer !== 'محكوم فيها';
+
+  for (const m of monthsToShow) {
+    const key = `${currentYear}-${String(m+1).padStart(2,'0')}`;
+    const jalsat = byMonth[key] || [];
+
+    // En mode recherche, ne pas afficher les mois vides
+    if (globalSearchTerm && jalsat.length === 0) continue;
+
+    html += `<div class="month-block">`;
+    html += `<div class="month-header">
+      <span class="month-icon">📆</span>
+      <h3>${MONTHS_AR[m]} ${currentYear}</h3>
+      ${jalsat.length ? '<span class="count">' + jalsat.length + ' جلسة</span>' : ''}
+    </div>`;
+
+    html += `<div class="month-toolbar">`;
+    html += `<button class="btn-add" onclick="location.href='${B}/jalsa/new?month=${key}'">+ إضافة جلسة</button>`;
+    html += `</div>`;
+
+    html += `<table>`;
+    html += `<thead><tr>
+      <th>المحكمة</th>
+      <th>عدد القضية</th>
+      <th>الدائرة</th>
+      <th>المنوب</th>
+      <th>المستفيد</th>
+      <th>الضد</th>
+      <th style="min-width:110px">الجلسة</th>
+      <th>الغرض</th>
+      <th style="min-width:110px">الجلسة المقبلة</th>
+      <th>الغرض الجلسة المقبلة</th>
+      <th>طور</th>
+      <th style="min-width:110px">تاريخ آخر آجال</th>
+      <th></th>
+    </tr></thead><tbody>`;
+
+    if (jalsat.length === 0) {
+      html += `<tr><td colspan="11" class="empty-row">لا توجد جلسات</td></tr>`;
+    } else {
+      // Grouper par jour
+      let lastDate = '';
+      jalsat.forEach(j => {
+        const currentDate = j.jalsa || '';
+        if (currentDate && currentDate !== lastDate) {
+          const dayName = formatDayArabic(currentDate);
+          html += `<tr class="day-header"><td colspan="11">📅 ${dayName}</td></tr>`;
+          lastDate = currentDate;
+        }
+        const manoubLink = j.folder_url
+          ? `<a href="${j.folder_url}" target="_blank" style="color:#3E7FD1;text-decoration:none" title="فتح الملف على Nextcloud">${j.manoub||''} 📂</a>`
+          : (j.manoub||'');
+        html += `<tr ondblclick="location.href='${B}/jalsa/${j.id}'" data-date="${j.jalsa||''}" class="${_aCompleter(j) ? 'jalsa-alerte' : ''}">
+          <td>${j.mahkama||''}</td>
+          <td><strong>${j.adad_qadiya||''}</strong></td>
+          <td>${j.daira||''}</td>
+          <td>${manoubLink}</td>
+          <td>${j.mustafid||''}</td>
+          <td>${j.ded||''}</td>
+          <td class="date-col">${j.jalsa||''}</td>
+          <td>${j.gharad||''}</td>
+          <td class="date-col">${j.jalsa_moqbila||''}</td>
+          <td>${j.gharad_jalsa_moqbila||''}</td>
+          <td>${j.tawer ? '<span class="badge-tawer badge-'+({جارية:'jariya',تصريح:'tasrih','محكوم فيها':'mahkoum'}[j.tawer]||'')+'">'+j.tawer+'</span>' : ''}</td>
+          <td class="date-col">${j.tarikh_akhir_ajal||''}</td>
+          <td><div class="actions-cell">
+            <a href="${B}/jalsa/${j.id}" class="btn-sm btn-edit">✏️</a>
+            <button class="btn-sm btn-del" onclick="event.stopPropagation();del(${j.id})">🗑️</button>
+          </div></td>
+        </tr>`;
+      });
+    }
+    html += `</tbody></table></div>`;
+  }
+
+  if (globalSearchTerm && html.indexOf('month-block') === -1) {
+    html += `<div style="text-align:center;padding:40px;color:#aaa;font-size:15px;background:white;border-radius:8px;">لا توجد نتائج للبحث</div>`;
+  }
+
+  document.getElementById('monthsContainer').innerHTML = html;
+  // _scrollAujourdhuiV2 : defiler vers la jalsa du jour (une seule fois, hors recherche)
+  if (!window._scrolledToToday && !globalSearchTerm) {
+    window._scrolledToToday = true;
+    setTimeout(() => {
+      const _n = new Date();
+      const _auj = `${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`;
+      const _lignes = [...document.querySelectorAll('tr[data-date]')].filter(r => r.dataset.date);
+      let _cible = _lignes.find(r => r.dataset.date >= _auj) || _lignes[_lignes.length - 1];
+      if (!_cible) return;
+      const _ent = _cible.previousElementSibling;
+      if (_ent && _ent.classList.contains('day-header')) _cible = _ent;
+      _cible.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }, 150);
+  }
+}
+
+async function del(id) {
+  if (!confirm('هل أنت متأكد من حذف هذه الجلسة؟')) return;
+  await fetch(`${B}/api/jalsat/${id}`, {method:'DELETE'});
+  renderYear();
+}
+
+// Auto-sélectionner le mois courant dans "شهر واحد"
+const currentMonthStr = String(new Date().getMonth() + 1).padStart(2, '0');
+
+renderYear();
+</script>
+<script src="/cabinet-stats/badges.js" defer>
+</script>
+
+<!-- ENTETE-FIXE : titre et barres d'outils fixes sous la barre des apps -->
+<style>
+  .entete-fixe{position:sticky;top:var(--haut-nav,40px);z-index:9000;
+    background:rgba(244,241,236,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    box-shadow:0 6px 18px -12px rgba(60,50,40,.35)}
+  .entete-fixe > *{margin-top:0!important;margin-bottom:0!important}
+  .entete-fixe .header,.entete-fixe .app-header{padding-top:10px!important;padding-bottom:10px!important}
+  .entete-fixe .toolbar,.entete-fixe .global-toolbar,.entete-fixe .filters{padding-top:8px!important;padding-bottom:8px!important}
+  .entete-fixe .year-nav{padding-top:6px!important;padding-bottom:6px!important}
+  tr.day-header,.month-block,[id]{scroll-margin-top:calc(var(--haut-nav,40px) + var(--haut-entete,0px) + 12px)}
+  @media (max-height:620px){.entete-fixe{position:static}}
+  @media print{.entete-fixe{position:static;box-shadow:none;background:#fff}}
+</style>
+<script>
+(function(){
+  var CLASSES = ['header','app-header','toolbar','global-toolbar','year-nav','filters'];
+  function estEntete(el){
+    if (!el || !el.classList) return false;
+    for (var i = 0; i < CLASSES.length; i++) if (el.classList.contains(CLASSES[i])) return true;
+    return false;
+  }
+  function hauteurs(){
+    var n = document.querySelector('body > .topnav'), e = document.querySelector('.entete-fixe');
+    var r = document.documentElement.style;
+    r.setProperty('--haut-nav', (n ? n.offsetHeight : 0) + 'px');
+    r.setProperty('--haut-entete', (e ? e.offsetHeight : 0) + 'px');
+  }
+  function monter(){
+    var nav = document.querySelector('body > .topnav');
+    var bs = getComputedStyle(document.body);
+    /* page deja en mise en page fixe (corps sans defilement) : rien a faire */
+    if (bs.overflowY === 'hidden' || bs.overflow === 'hidden') nav = null;
+    if (nav && !document.querySelector('.entete-fixe')) {
+      var groupe = [], el = nav.nextElementSibling;
+      while (el && (el.tagName === 'SCRIPT' || el.tagName === 'STYLE')) el = el.nextElementSibling;
+      while (estEntete(el)) { groupe.push(el); el = el.nextElementSibling; }
+      if (groupe.length) {
+        var w = document.createElement('div');
+        w.className = 'entete-fixe';
+        groupe[0].parentNode.insertBefore(w, groupe[0]);
+        groupe.forEach(function(g){ w.appendChild(g); });
+      }
+    }
+    hauteurs();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', monter); else monter();
+  window.addEventListener('load', hauteurs);
+  window.addEventListener('resize', hauteurs);
+})();
+</script>
+</body>
+</html>

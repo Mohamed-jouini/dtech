@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ DOC_TYPES.get(doc_type,{}).get('label','Documents') }}{% if doc_type != 'devis' %}s{% endif %}{% endblock %}
+{% block extra_style %}
+<style>
+  .filter-bar { background:var(--white); border-radius:10px; box-shadow:var(--shadow); padding:14px 18px; margin-bottom:16px; }
+  .filter-bar form { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+  .filter-group { display:flex; flex-direction:column; gap:4px; }
+  .filter-group label { font-size:11px; font-weight:600; color:var(--text-2); }
+  .filter-group select, .filter-group input { padding:7px 10px; border:1px solid var(--border); border-radius:7px; font-size:13px; font-family:inherit; background:var(--white); }
+  .filter-group input[type="date"] { direction:ltr; }
+  .badge-total { background:var(--blue-light); color:var(--blue-2); border-radius:12px; padding:3px 12px; font-size:12px; font-weight:700; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set dt = DOC_TYPES.get(doc_type, {}) %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  <h2 style="font-size:18px;color:var(--blue-3)">
+    {{ dt.icon }} {{ dt.label }}{% if doc_type != 'devis' %}s{% endif %}
+    <span class="badge-total">{{ docs|length }}</span>
+  </h2>
+  <a href="{{ BASE }}/documents/new?type={{ doc_type }}" class="btn btn-primary">＋ Nouveau {{ dt.label }}</a>
+</div>
+
+<!-- BARRE DE FILTRES -->
+<div class="filter-bar">
+  <form method="GET">
+    <input type="hidden" name="type" value="{{ doc_type }}">
+
+    <div class="filter-group">
+      <label>📅 Exercice</label>
+      <select name="exercice" onchange="this.form.submit()">
+        <option value="">Tous</option>
+        {% for ex in exercices %}
+        <option value="{{ ex }}" {% if ex==exercice %}selected{% endif %}>{{ ex }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>👤 Client</label>
+      <select name="client_id">
+        <option value="">Tous les clients</option>
+        {% for cl in clients %}
+        <option value="{{ cl.id }}" {% if cl.id|string == client_id %}selected{% endif %}>{{ cl.raison_sociale }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>📆 Du</label>
+      <input type="date" name="date_debut" value="{{ date_debut }}">
+    </div>
+
+    <div class="filter-group">
+      <label>📆 Au</label>
+      <input type="date" name="date_fin" value="{{ date_fin }}">
+    </div>
+
+    {% if doc_type == 'facture' %}
+    <div class="filter-group">
+      <label>⚡ Statut</label>
+      <select name="statut">
+        <option value="">Tous statuts</option>
+        {% for k,v in STATUTS.items() %}
+        <option value="{{ k }}" {% if k==statut %}selected{% endif %}>{{ v.icon }} {{ v.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% else %}
+    <input type="hidden" name="statut" value="">
+    {% endif %}
+
+    <div style="display:flex;gap:6px;align-items:flex-end">
+      <button type="submit" class="btn btn-primary">🔍 Filtrer</button>
+      <a href="{{ BASE }}/documents?type={{ doc_type }}" class="btn btn-secondary">✕ Reset</a>
+    </div>
+  </form>
+</div>
+
+<!-- TABLEAU -->
+<div class="card">
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Numéro</th>
+          <th>Client</th>
+          <th>Date</th>
+          <th>Échéance</th>
+          <th>Montant TTC</th>
+          {% if doc_type == 'facture' %}<th>Statut</th>{% endif %}
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in docs %}
+        <tr>
+          <td><strong style="color:var(--blue-2)">{{ d.numero }}</strong></td>
+          <td>{{ d.client_nom or '—' }}</td>
+          <td>{{ d.date_doc | date_fr or '—' }}</td>
+          <td>{{ d.date_echeance | date_fr or '—' }}</td>
+          <td style="text-align:right;font-weight:600">{{ "%.3f"|format(d.total_ttc) }} TND</td>
+          {% if doc_type == 'facture' %}
+          <td><span class="badge badge-{{ d.statut }}">{{ STATUTS.get(d.statut,{}).get('label','') }}</span></td>
+          {% endif %}
+          <td class="actions">
+            <a href="{{ BASE }}/documents/{{ d.id }}" class="btn btn-info btn-sm">👁️</a>
+            <a href="{{ BASE }}/documents/{{ d.id }}/edit" class="btn btn-secondary btn-sm">✏️</a>
+            <a href="{{ BASE }}/documents/{{ d.id }}/pdf" target="_blank" class="btn btn-secondary btn-sm">🖨️</a>
+            <form method="POST" action="{{ BASE }}/documents/{{ d.id }}/delete" style="display:inline"
+                  onsubmit="return confirm('Supprimer ?')">
+              <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty">Aucun document trouvé</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

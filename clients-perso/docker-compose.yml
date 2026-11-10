@@ -1,0 +1,24 @@
+services:
+  clients-perso:
+    build: .
+    container_name: clients-perso
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5009:5009"
+    volumes:
+      - clients-perso-data:/data
+    environment:
+      - DB_PATH=/data/clients_perso.db
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/clients-perso
+      - FICHE_URL=/fiche-client
+      - PORT=5009
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  clients-perso-data:

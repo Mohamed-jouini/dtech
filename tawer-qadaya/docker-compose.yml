@@ -1,0 +1,28 @@
+services:
+  tawer-qadaya:
+    build: .
+    container_name: tawer-qadaya
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5005:5005"
+    volumes:
+      - tawer-data:/data
+      - fiche-client-app_fiche-data:/clients-data
+    environment:
+      - DB_PATH=/data/qadaya.db
+      - CLIENTS_DB_PATH=/clients-data/clients.db
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/tawer-qadaya
+      - FICHE_BASE=/fiche-client
+      - PORT=5005
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  tawer-data:
+  fiche-client-app_fiche-data:
+    external: true

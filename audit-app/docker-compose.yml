@@ -1,0 +1,23 @@
+services:
+  audit-app:
+    build: .
+    container_name: audit-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5010:5010"
+    volumes:
+      - audit-data:/data
+    environment:
+      - DB_PATH=/data/audit.db
+      - NEXTCLOUD_URL=http://cabinet.mwj-lawyers.com
+      - BASE_PATH=/audit
+      - PORT=5010
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  audit-data:

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base target="_self">
+  <title>ملف المنوب والقضية</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #EFECE6; padding: 20px; direction: rtl; }
+    .page { background: #fff; max-width: 1100px; margin: 0 auto; border-radius: 10px; box-shadow: 0 2px 20px rgba(0,0,0,0.08); overflow: hidden; }
+    .header { background: rgba(255,255,255,.62); color: white; text-align: center; padding: 16px; position: relative; }
+    .header h1 { font-size: 20px; }
+    .header .back { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: white; text-decoration: none; font-size: 13px; opacity: 0.8; }
+    .header .back:hover { opacity: 1; }
+    .case-number { background: #F7F5F1; border-bottom: 1px solid #E4DFD7; padding: 12px 24px; display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .case-number label { font-size: 14px; font-weight: bold; color: #2C65AE; }
+    .case-number input { padding: 8px 14px; border: 2px solid #3E7FD1; border-radius: 6px; font-size: 16px; font-weight: bold; text-align: center; width: 250px; direction: ltr; }
+    .case-number input:focus { outline: none; box-shadow: 0 0 0 3px rgba(44,123,229,0.2); }
+    .status-bar { text-align: center; padding: 8px; font-size: 13px; font-weight: bold; display: none; }
+    .status-bar.success { background: #d4edda; color: #155724; display: block; }
+    .status-bar.error { background: #f8d7da; color: #721c24; display: block; }
+    .status-bar.saving { background: #fff3cd; color: #856404; display: block; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+    .column { padding: 18px; }
+    .column:first-child { border-left: 1px solid #E4DFD7; }
+    .section-title { display: flex; align-items: center; gap: 8px; margin: 16px 0 10px 0; padding: 8px 12px; background: #E9F0FA; border-radius: 6px; border-right: 4px solid #3E7FD1; color: #2C65AE; font-size: 14px; font-weight: bold; }
+    .section-title:first-child { margin-top: 0; }
+    .field { margin-bottom: 10px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: #333; margin-bottom: 3px; }
+    .field input, .field textarea, .field select { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; font-family: inherit; direction: rtl; text-align: right; transition: border-color 0.2s; }
+    .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: #3E7FD1; box-shadow: 0 0 0 3px rgba(44,123,229,0.1); }
+    .field textarea { min-height: 50px; resize: vertical; }
+    .field input[type="tel"], .field input[type="email"] { direction: ltr; text-align: left; }
+    .btn-add { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px; margin: 10px 0; border: 2px dashed #3E7FD1; border-radius: 8px; background: #EEF3FA; color: #3E7FD1; font-size: 13px; font-weight: bold; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .btn-add:hover { background: #e0efff; border-color: #2C65AE; }
+    .btn-add-adverse { border-color: #34B457; background: #f0fff4; color: #34B457; font-size: 14px; padding: 12px; margin-top: 16px; }
+    .btn-add-adverse:hover { background: #e0ffe8; border-color: #2A9949; }
+    .adverse-block { border: 2px solid #dee2e6; border-radius: 10px; padding: 16px; margin-top: 16px; position: relative; background: #fdfdff; }
+    .avocat-block { border: 1px solid #E4DFD7; border-radius: 8px; padding: 12px; margin-top: 8px; position: relative; background: #fafcff; }
+    .btn-remove { position: absolute; top: 8px; left: 8px; background: #C25B4A; color: white; border: none; border-radius: 50%; width: 26px; height: 26px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1; }
+    .btn-remove:hover { background: #9C4132; }
+    .actions { display: flex; justify-content: center; gap: 10px; padding: 18px; background: #F7F5F1; border-top: 1px solid #E4DFD7; }
+    .btn { padding: 10px 24px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none; transition: all 0.2s; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .btn-save { background: #3E7FD1; color: white; }
+    .btn-back { background: #7A746C; color: white; }
+    .footer { text-align: center; padding: 10px; font-size: 11px; color: #999; }
+    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } .column:first-child { border-left: none; border-top: 1px solid #E4DFD7; } }
+  
+/* ===== THEME AVOCAT v2 =============================================
+   Ajoute dans le style de la page (jamais dans les fenetres d'impression).
+   Les couleurs d'origine sont deja remappees a la source ; ce bloc
+   harmonise les surfaces, la navigation et les en-tetes.
+   ================================================================== */
+:root{
+  --av-blue:#3E7FD1; --av-blue-d:#2C65AE; --av-blue-dd:#1E4C86;
+  --av-ink:#2B2A28; --av-ink-2:#5C5852; --av-ink-3:#8C867E;
+  --av-brd:rgba(255,255,255,.85);
+  --av-line:rgba(120,112,102,.22);
+  --av-glass:rgba(255,255,255,.62);
+  --av-card:rgba(255,255,255,.74);
+  --av-card-2:rgba(255,255,255,.90);
+  --av-shadow:0 6px 24px rgba(72,64,54,.10);
+  --av-shadow-h:0 14px 36px rgba(72,64,54,.18);
+  --av-green:#34B457; --av-sand:#B5862B; --av-red:#C25B4A;
+  --av-ui:'Noto Sans Arabic','Tajawal','Segoe UI',Tahoma,Arial,sans-serif;
+}
+
+/* ---- Page ---- */
+body{
+  background:linear-gradient(155deg,#EFECE6 0%,#DFDAD1 52%,#E9E5DE 100%) fixed!important;
+  color:var(--av-ink);
+  font-family:var(--av-ui)!important;
+}
+
+/* ---- Barre de navigation commune ---- */
+.topnav{
+  position:sticky;top:0;z-index:9999;flex:none;direction:rtl;
+  padding:5px 14px;
+  background:rgba(255,255,255,.76);
+  backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  border-bottom:1px solid var(--av-line);
+}
+.topnav__list{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.topnav a{
+  color:var(--av-ink-2);text-decoration:none;padding:4px 10px;
+  border-radius:999px;font-size:11.5px;font-weight:600;line-height:1.6;
+  transition:background .15s,color .15s;
+}
+.topnav a:hover{background:rgba(255,255,255,.95);color:var(--av-ink)}
+.topnav a.is-home{background:rgba(62,127,209,.16);color:var(--av-blue-d)}
+.topnav a.is-cloud{background:rgba(168,144,106,.18);color:#8A6A2E}
+.topnav a.is-active{background:#fff;color:var(--av-ink);box-shadow:var(--av-shadow)}
+
+/* pages dont le body a une marge de 20px : barre collee aux bords */
+.topnav.topnav--bleed{margin:-20px -20px 20px}
+
+/* menus internes poses dans un en-tete (ex. facturation) */
+.nav-link{color:var(--av-ink-2)!important}
+.nav-link:hover,.nav-link.active{
+  background:rgba(62,127,209,.12)!important;color:var(--av-blue-d)!important;
+}
+
+/* ---- En-tetes (les degrades d'origine sont convertis en verre) ---- */
+.header,.app-header,.month-header,.view-header,.form-card-header,.card-header{
+  background-image:none!important;
+  background-color:var(--av-glass)!important;
+  backdrop-filter:blur(18px) saturate(150%);
+  -webkit-backdrop-filter:blur(18px) saturate(150%);
+  color:var(--av-ink)!important;
+  border-bottom:1px solid var(--av-line)!important;
+  box-shadow:none!important;
+}
+.header,.app-header{border-radius:0!important}
+.month-header,.view-header,.form-card-header{
+  border:1px solid var(--av-brd)!important;
+  box-shadow:var(--av-shadow)!important;
+}
+.month-header td{background:var(--av-glass)!important;color:var(--av-ink)!important}
+/* textes blancs herites des en-tetes bleus */
+.header :not(a):not(button):not(input):not(select):not(option),
+.app-header :not(a):not(button):not(input):not(select):not(option),
+.month-header :not(a):not(button),.view-header :not(a):not(button),
+.form-card-header :not(a):not(button),.card-header :not(a):not(button){
+  color:var(--av-ink)!important;
+}
+.header a:not([class]),.app-header a:not([class]){color:var(--av-blue-d)!important}
+.month-header .count{
+  background:rgba(62,127,209,.14)!important;color:var(--av-blue-d)!important;
+  border:1px solid rgba(62,127,209,.32);
+}
+/* petits boutons blancs-sur-bleu poses dans les en-tetes */
+.header button:not([class]),.app-header button:not([class]){
+  background:rgba(255,255,255,.9)!important;color:var(--av-ink)!important;
+  border:1px solid var(--av-line)!important;border-radius:999px!important;
+}
+
+/* ---- Cartes ---- */
+.card,.page,.doc-box{
+  background:var(--av-card)!important;
+  border:1px solid var(--av-brd)!important;
+  border-radius:20px!important;
+  box-shadow:var(--av-shadow)!important;
+  backdrop-filter:blur(14px);
+}
+.card .card,.card .doc-box{box-shadow:none!important;backdrop-filter:none}
+.stat{
+  background:var(--av-card)!important;
+  border:1px solid var(--av-brd)!important;
+  border-radius:18px!important;
+  box-shadow:var(--av-shadow)!important;
+  backdrop-filter:blur(14px);
+}
+.global-toolbar,.year-nav,.filters{
+  background:rgba(255,255,255,.50)!important;
+  border-color:var(--av-line)!important;
+  backdrop-filter:blur(14px);
+}
+
+/* navigation d'annee : texte et fleches lisibles sur le fond clair */
+.year-nav{border:1px solid var(--av-brd)!important}
+.year-nav .year-label,.year-nav h2,.year-nav span{color:var(--av-ink)!important}
+.year-nav button{
+  background:#fff!important;color:var(--av-blue-d)!important;
+  border:1px solid var(--av-line)!important;box-shadow:var(--av-shadow);
+}
+.year-nav button:hover{background:var(--av-blue)!important;color:#fff!important}
+
+/* ---- Tableaux ---- */
+table{
+  background:var(--av-card);
+  border-collapse:separate!important;border-spacing:0;
+  border-radius:16px;overflow:hidden;
+  box-shadow:var(--av-shadow);
+}
+thead th,table > tr:first-child th{
+  background:rgba(255,255,255,.60)!important;
+  color:var(--av-ink-2)!important;
+  border-bottom:1px solid var(--av-line)!important;
+}
+td{border-bottom-color:var(--av-line)!important}
+tbody tr:hover td{background:rgba(255,255,255,.65)}
+
+/* ---- Formulaires ---- */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{
+  background:rgba(255,255,255,.94)!important;
+  color:var(--av-ink);
+  border-color:rgba(120,112,102,.28)!important;
+  border-radius:12px!important;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none!important;
+  border-color:var(--av-blue)!important;
+  box-shadow:0 0 0 3px rgba(62,127,209,.20)!important;
+}
+input[type="checkbox"],input[type="radio"]{accent-color:var(--av-blue)}
+
+/* ---- Boutons ---- */
+.btn,.btn-sm,.btn-new,.btn-add,.btn-save,.btn-print,.btn-back,.btn-primary,
+.btn-secondary,.btn-success,.btn-danger,.btn-del,.btn-edit,.btn-info,.btn-remove{
+  border-radius:999px!important;
+}
+.btn-new,.btn-add,.btn-save,.btn-primary{
+  background:var(--av-blue)!important;color:#fff!important;
+  border-color:var(--av-blue)!important;box-shadow:var(--av-shadow);
+}
+.btn-new:hover,.btn-add:hover,.btn-save:hover,.btn-primary:hover{
+  background:var(--av-blue-d)!important;color:#fff!important;
+}
+.btn-print,.btn-back,.btn-secondary{
+  background:rgba(255,255,255,.88)!important;color:var(--av-ink)!important;
+  border:1px solid var(--av-line)!important;
+}
+.btn-print:hover,.btn-back:hover,.btn-secondary:hover{background:#fff!important;color:var(--av-blue-d)!important}
+.btn-danger,.btn-del,.btn-remove{
+  background:rgba(194,91,74,.14)!important;color:var(--av-red)!important;
+  border:1px solid rgba(194,91,74,.38)!important;
+}
+.btn-danger:hover,.btn-del:hover,.btn-remove:hover{background:rgba(194,91,74,.24)!important}
+
+/* boutons d'alerte poses en style inline (ex. آخر آجال) : garder le rouge */
+.btn-new[style*="#C25B4A"],.btn-add[style*="#C25B4A"]{
+  background:var(--av-red)!important;border-color:var(--av-red)!important;color:#fff!important;
+}
+
+/* ---- Impression : aucun effet de verre ---- */
+@media print{
+  .topnav{display:none!important}
+  body{background:#fff!important}
+  .card,.page,.doc-box,.stat,table,.header,.app-header,.month-header{
+    background:#fff!important;box-shadow:none!important;backdrop-filter:none!important;
+  }
+}
+/* ===== fin THEME AVOCAT v2 ===== */
+
+  </style>
+<style id="mobile-responsive-v1">
+/* ===== MOBILE RESPONSIVE v1 ==========================================
+   Bloc commun injecte dans toutes les pages (voir inject_mobile.ps1).
+   N'agit qu'en dessous de 820px : le bureau reste inchange.
+   ===================================================================== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+img,video,canvas,iframe,svg{max-width:100%}
+
+@media (max-width:820px){
+  body{overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+  body[style*="padding"],body[style*="margin"]{padding-left:10px!important;padding-right:10px!important}
+
+  /* ---- Barre des applications : une seule ligne defilante ---- */
+  .topnav{padding:4px 8px}
+  .topnav__list{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;gap:4px}
+  .topnav__list::-webkit-scrollbar{display:none}
+  .topnav a{flex:none;white-space:nowrap;padding:8px 12px;font-size:13px}
+  .topnav.topnav--bleed{margin:-10px -10px 12px}
+
+  /* en-tetes FIXES (sticky) : version compacte, le contenu defile dessous */
+  .entete-fixe{position:sticky!important;max-height:42vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .entete-fixe .header,.entete-fixe .app-header{padding:6px 10px!important;gap:6px}
+  .entete-fixe .toolbar,.entete-fixe .global-toolbar,.entete-fixe .filters{
+    padding:6px 10px!important;gap:6px}
+  .entete-fixe .year-nav{padding:4px 8px!important;gap:6px}
+  .entete-fixe input,.entete-fixe select{min-height:36px;padding-top:5px;padding-bottom:5px}
+  .entete-fixe .btn,.entete-fixe .btn-new,.entete-fixe .btn-print,.entete-fixe button{min-height:34px}
+  .entete-fixe .header h1,.entete-fixe .app-header h1{font-size:15px}
+  .entete-fixe .year-nav h2,.entete-fixe .year-nav .year-label{font-size:15px}
+  .display-mode label{display:none}
+
+  /* ---- En-tetes de page ---- */
+  .header,.app-header,.view-header,.form-card-header{
+    flex-wrap:wrap;gap:8px;padding:10px 12px!important;height:auto!important;min-height:0}
+  .header h1,.app-header h1,.view-header h1{font-size:16px}
+  .header-actions,.header-btns,.view-actions{display:flex;flex-wrap:wrap;gap:6px}
+  .app-header{flex-direction:column;align-items:flex-start!important}
+  .nav-links{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:6px}
+  .nav-links::-webkit-scrollbar{display:none}
+  .nav-link{white-space:nowrap;flex:none}
+
+  /* ---- Conteneurs ---- */
+  .container{padding-left:10px!important;padding-right:10px!important;margin-top:10px!important}
+  .content{padding:12px 10px!important}
+  .flash-zone{padding:0 10px}
+  .card-header{padding:12px 14px!important;flex-wrap:wrap;gap:8px}
+  .card-body{padding:14px}
+  .month-header{flex-wrap:wrap;gap:8px;padding:10px 12px!important}
+  .month-header h3{font-size:18px}
+
+  /* ---- Barres d'outils / recherche / filtres ---- */
+  .global-toolbar,.toolbar,.filters,.search-zone,.table-header,.filter-bar,.month-toolbar{
+    flex-wrap:wrap;gap:8px;padding-left:10px!important;padding-right:10px!important}
+  .search-global,.search-zone,.scope-toggle{width:100%}
+  .display-mode{flex:1 1 0;min-width:0}
+  .global-toolbar .btn-print{flex:none;padding:6px 14px!important}
+  .search-box,.toolbar input,.month-filter,
+  .filters input,.filters select{width:100%!important;min-width:0!important;flex:1 1 100%}
+  .display-mode select{width:100%!important;min-width:0!important}
+  .search-global{display:flex;flex-wrap:nowrap;gap:6px}
+  .search-global input{flex:1 1 auto;width:auto!important;min-width:0!important}
+  .search-global button{flex:none}
+  .year-nav{flex-wrap:wrap;justify-content:center;padding:8px 10px!important}
+  .year-nav h2,.year-nav .year-label{min-width:0!important;font-size:17px}
+  .scope-btn{flex:1}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab-btn{flex:none;white-space:nowrap}
+  .search-banner{flex-wrap:wrap;gap:8px}
+
+  /* ---- Grilles : tout sur une colonne ---- */
+  .form-grid,.row-2,.row-3,.grid,.info-grid,.two-cols,.ctx-grid,
+  .party-row,[style*="grid-template-columns"]{grid-template-columns:minmax(0,1fr)!important}
+  .form-grid>*,.row-2>*,.row-3>*,.grid>*,.info-grid>*,.two-cols>*,.ctx-grid>*,
+  .party-row>*,[style*="grid-template-columns"]>*{min-width:0}
+  .card,.card-body{min-width:0;max-width:100%}
+  .party-header{display:none!important}
+  .stats-grid{grid-template-columns:repeat(2,1fr)!important}
+  .stat-card{padding:14px!important;gap:10px!important}
+  .stat-icon{width:42px!important;height:42px!important;font-size:20px!important}
+  .stat-val{font-size:22px!important}
+  .column:first-child{border-left:none}
+
+  /* ---- Formulaires : cibles tactiles, pas de zoom iOS ---- */
+  input,select,textarea{font-size:16px!important;max-width:100%;min-height:42px}
+  input[type="checkbox"],input[type="radio"]{min-height:0;width:20px;height:20px}
+  textarea{min-height:90px}
+  .case-number input{width:100%!important}
+  label{font-size:13px}
+  .form-row,.field-row,.detail-row,.info-row{flex-wrap:wrap}
+  .field-label,.info-label,.detail-label{min-width:0!important;flex:1 1 100%}
+  .form-actions,.actions-bar,.btn-row,.form-footer{display:flex;flex-wrap:wrap;gap:8px}
+
+  /* ---- Boutons ---- */
+  .btn,.btn-new,.btn-add,.btn-save,.btn-print,.btn-back,.btn-primary,.btn-secondary,
+  .btn-success,.btn-danger,.btn-warning,.btn-info,.btn-edit,.btn-del{
+    min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .btn-sm{min-height:34px;padding:6px 12px!important}
+  .actions,.actions-cell{white-space:normal!important;flex-wrap:wrap;gap:6px}
+
+  /* ---- Tableaux : defilement horizontal ---- */
+  table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th{padding:8px!important}
+  td{padding:8px!important}
+  .table-wrap{overflow-x:auto}
+
+  /* ---- Fenetres modales ---- */
+  .modal-overlay{align-items:flex-end!important;padding:0}
+  .modal{min-width:0!important;width:100%!important;max-width:100%!important;
+    max-height:92vh;overflow-y:auto;padding:18px!important;border-radius:16px 16px 0 0!important}
+  .total-box,[style*="min-width:2"],[style*="min-width:1"]{min-width:0!important}
+  [style*="width:400px"],[style*="width:250px"],[style*="width:300px"]{width:100%!important}
+
+  /* ---- Divers ---- */
+  .file-item{flex-wrap:wrap}
+  pre{white-space:pre-wrap;word-break:break-word}
+}
+
+@media (max-width:480px){
+  .stats-grid{grid-template-columns:1fr!important}
+  .header h1,.app-header h1{font-size:15px}
+  .btn-new,.header-actions .btn-new{flex:1 1 auto;text-align:center}
+  .month-header h3{font-size:16px}
+  .topnav a{padding:7px 10px;font-size:12.5px}
+}
+/* ===== fin MOBILE RESPONSIVE v1 ===== */
+</style>
+</head>
+<body><nav class="topnav topnav--bleed">
+  <div class="topnav__list">
+    <a href="/apps/dashboard/" class="is-home">🏠</a>
+    <a href="/apps/files/?dir=/Affaires%20juridiques" target="_blank" rel="noopener" class="is-cloud">☁️ ملفات القضايا</a>
+    <a href="/fiche-client/" class="is-active">👤 معطيات القضايا</a>
+    <a href="/clients-perso/">🗂️ المعطيات الشخصية</a>
+    <a href="/agenda-jalsat/">📅 أجندة</a>
+    <a href="/huissiers/">⚖️ العدول</a>
+    <a href="/taches-huissiers/">📝 مهام العدول</a>
+    <a href="/tawer-qadaya/">📋 طور القضايا</a>
+    <a href="/mes-taches/">✅ مهامي</a>
+    <a href="/shakayat/">📢 الشكايات</a>
+    <a href="/facturation/">🧾 الفوترة</a>
+    <a href="/archive/">🗄️ الأرشيف</a>
+    <a href="/maktaba-qanouniya/">📚 المكتبة</a>
+    <a href="/audit/">📊 السجل</a>
+  </div>
+</nav>
+<div class="page">
+  <div class="header">
+    <a href="{{ BASE }}/" class="back">→ القائمة</a>
+    <h1 id="pageTitle">📋 ملف جديد</h1>
+  </div>
+  <div class="case-number">
+    <label>رقم القضية</label>
+    <input type="text" id="raqm_qadiya" placeholder="أدخل رقم القضية...">
+  </div>
+
+  <!-- مسار الملف على Nextcloud -->
+  <div class="case-number" style="background:#f0fff4; border-color:#34B457;">
+    <label style="color:#34B457;">📂 رابط ملف القضية</label>
+    <input type="text" id="folder_url" placeholder="الصق رابط ملف القضية..." style="border-color:#34B457; width:400px; font-size:12px; direction:ltr; text-align:left;">
+    <a href="#" id="openFolderLink" onclick="openFolder()" style="background:#34B457; color:white; padding:6px 14px; border-radius:6px; text-decoration:none; font-size:12px; display:none;">فتح الملف 📂</a>
+  </div>
+
+  <div class="status-bar" id="statusBar"></div>
+  <div class="grid">
+    <div class="column">
+      <div class="section-title">👤 المنوب</div>
+      <div class="field"><label>الهوية</label><input type="text" id="client_nom"></div>
+      <div class="field"><label>رقم الهوية</label><input type="text" id="client_id_num"></div>
+      <div class="field"><label>الصفة</label>
+        <select id="client_sifa">
+          <option value="">— اختر —</option>
+          <option value="مدعي">مدعي</option><option value="مدعى عليه">مدعى عليه</option>
+          <option value="مستأنف">مستأنف</option><option value="مستأنف ضده">مستأنف ضده</option>
+          <option value="معقب">معقب</option><option value="معقب ضده">معقب ضده</option>
+          <option value="دائن العاقل">دائن العاقل</option><option value="المدين المعقول عنه">المدين المعقول عنه</option>
+        </select>
+      </div>
+      <div class="field"><label>المستفيد</label><input type="text" id="client_mustafid"></div>
+
+      <!-- منوبون إضافيون -->
+      <div id="extra-clients"></div>
+      <button type="button" class="btn-add" onclick="addClient()" style="border-color:#3E7FD1;background:#EEF3FA;color:#3E7FD1;">+ المنوب</button>
+    </div>
+    <div class="column">
+      <div class="section-title">👤 الطرف الضد</div>
+      <div class="field"><label>الهوية</label><input type="text" id="adverse_nom"></div>
+      <div class="field"><label>رقم الهوية</label><input type="text" id="adverse_id_num"></div>
+      <div class="field"><label>الصفة</label>
+        <select id="adverse_sifa">
+          <option value="">— اختر —</option>
+          <option value="مدعي">مدعي</option><option value="مدعى عليه">مدعى عليه</option>
+          <option value="مستأنف">مستأنف</option><option value="مستأنف ضده">مستأنف ضده</option>
+          <option value="معقب">معقب</option><option value="معقب ضده">معقب ضده</option>
+          <option value="دائن العاقل">دائن العاقل</option><option value="المدين المعقول عنه">المدين المعقول عنه</option>
+        </select>
+      </div>
+      <div class="field"><label>العنوان</label><textarea id="adverse_adresse"></textarea></div>
+      <div class="field"><label>الهاتف</label><input type="tel" id="adverse_tel"></div>
+      <div class="field"><label>البريد الإلكتروني</label><input type="email" id="adverse_email"></div>
+      <div class="section-title">⚖️ المحامي المسؤول 1</div>
+      <div class="field"><label>اسم المحامي</label><input type="text" id="avocat_nom"></div>
+      <div class="field"><label>العنوان</label><textarea id="avocat_adresse"></textarea></div>
+      <div class="field"><label>الهاتف</label><input type="tel" id="avocat_tel"></div>
+      <div class="field"><label>البريد الإلكتروني</label><input type="email" id="avocat_email"></div>
+      <div id="extra-avocats-main"></div>
+      <button type="button" class="btn-add" onclick="addAvocatTo('extra-avocats-main')">+ المحامي المسؤول</button>
+      <div id="extra-adverses"></div>
+      <button type="button" class="btn-add btn-add-adverse" onclick="addAdverse()">+ الطرف الضد</button>
+    </div>
+  </div>
+
+  <!-- الجلسات المرتبطة -->
+  <div id="jalsat-section" style="display:none; padding: 0 18px 18px;">
+    <div class="section-title" style="background:#f3e8fa; border-right-color:#8e44ad; color:#6c3483;">📅 الجلسات المرتبطة بهذا الملف
+      <a id="newJalsaLink" href="#" target="_blank" style="margin-right:auto; font-size:11px; color:#8e44ad; text-decoration:none;">➕ جلسة جديدة</a>
+    </div>
+    <div id="jalsatContainer"></div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn btn-save" onclick="saveClient()">💾 حفظ في قاعدة البيانات</button>
+    <a href="{{ BASE }}/" class="btn btn-back">→ العودة</a>
+  </div>
+  <div class="footer">نسخة مزدوجة — وثيقة داخلية سرية</div>
+</div>
+<script>
+const CLIENT_ID = {{ client_id if client_id else 'null' }};
+const B = '{{ BASE }}';
+const AB = '{{ AGENDA_BASE }}';
+const SIFA_OPTIONS = `<option value="">— اختر —</option><option value="مدعي">مدعي</option><option value="مدعى عليه">مدعى عليه</option><option value="مستأنف">مستأنف</option><option value="مستأنف ضده">مستأنف ضده</option><option value="معقب">معقب</option><option value="معقب ضده">معقب ضده</option><option value="دائن العاقل">دائن العاقل</option><option value="المدين المعقول عنه">المدين المعقول عنه</option>`;
+
+let uid = 0;
+let avocatCounters = {'extra-avocats-main': 1};
+let adverseCounter = 1;
+let clientCounter = 1;
+function nextId() { return ++uid; }
+
+function addClient(data) {
+  const n = nextId();
+  clientCounter++;
+  const cNum = clientCounter;
+  const sifaVal = data?.sifa || '';
+  let opts = SIFA_OPTIONS;
+  if (sifaVal) opts = opts.replace(`value="${sifaVal}"`, `value="${sifaVal}" selected`);
+
+  document.getElementById('extra-clients').insertAdjacentHTML('beforeend', `
+    <div class="adverse-block" data-client-id="${n}" style="border-color:#D2DDEC;">
+      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+      <div class="section-title">👤 المنوب ${cNum}</div>
+      <div class="field"><label>الهوية</label><input type="text" data-f="nom" value="${data?.nom||''}"></div>
+      <div class="field"><label>رقم الهوية</label><input type="text" data-f="id_num" value="${data?.id_num||''}"></div>
+      <div class="field"><label>الصفة</label><select data-f="sifa">${opts}</select></div>
+    </div>`);
+}
+
+function addAvocatTo(containerId, data) {
+  const n = nextId();
+  if (!avocatCounters[containerId]) avocatCounters[containerId] = 1;
+  avocatCounters[containerId]++;
+  const num = avocatCounters[containerId];
+  document.getElementById(containerId).insertAdjacentHTML('beforeend', `
+    <div class="avocat-block" data-avocat-id="${n}">
+      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+      <div class="section-title">⚖️ المحامي المسؤول ${num}</div>
+      <div class="field"><label>اسم المحامي</label><input type="text" data-f="nom" value="${data?.nom||''}"></div>
+      <div class="field"><label>العنوان</label><textarea data-f="adresse">${data?.adresse||''}</textarea></div>
+      <div class="field"><label>الهاتف</label><input type="tel" data-f="tel" value="${data?.tel||''}"></div>
+      <div class="field"><label>البريد الإلكتروني</label><input type="email" data-f="email" value="${data?.email||''}"></div>
+    </div>`);
+}
+
+function addAdverse(data) {
+  const n = nextId();
+  adverseCounter++;
+  const advNum = adverseCounter;
+  const sifaVal = data?.sifa || '';
+  let opts = SIFA_OPTIONS;
+  if (sifaVal) opts = opts.replace(`value="${sifaVal}"`, `value="${sifaVal}" selected`);
+  const avId = `extra-avocats-adv-${n}`;
+  avocatCounters[avId] = 1;
+  document.getElementById('extra-adverses').insertAdjacentHTML('beforeend', `
+    <div class="adverse-block" data-adverse-id="${n}">
+      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+      <div class="section-title">👤 الطرف الضد ${advNum}</div>
+      <div class="field"><label>الهوية</label><input type="text" data-f="nom" value="${data?.nom||''}"></div>
+      <div class="field"><label>رقم الهوية</label><input type="text" data-f="id_num" value="${data?.id_num||''}"></div>
+      <div class="field"><label>الصفة</label><select data-f="sifa">${opts}</select></div>
+      <div class="field"><label>العنوان</label><textarea data-f="adresse">${data?.adresse||''}</textarea></div>
+      <div class="field"><label>الهاتف</label><input type="tel" data-f="tel" value="${data?.tel||''}"></div>
+      <div class="field"><label>البريد الإلكتروني</label><input type="email" data-f="email" value="${data?.email||''}"></div>
+      <div class="section-title">⚖️ المحامي المسؤول 1</div>
+      <div class="field"><label>اسم المحامي</label><input type="text" data-f="avocat_nom" value="${data?.avocat_nom||''}"></div>
+      <div class="field"><label>العنوان</label><textarea data-f="avocat_adresse">${data?.avocat_adresse||''}</textarea></div>
+      <div class="field"><label>الهاتف</label><input type="tel" data-f="avocat_tel" value="${data?.avocat_tel||''}"></div>
+      <div class="field"><label>البريد الإلكتروني</label><input type="email" data-f="avocat_email" value="${data?.avocat_email||''}"></div>
+      <div id="${avId}"></div>
+      <button type="button" class="btn-add" onclick="addAvocatTo('${avId}')">+ المحامي المسؤول</button>
+    </div>`);
+  if (data?.extra_avocats) data.extra_avocats.forEach(a => addAvocatTo(avId, a));
+}
+
+function collectAvocatsFrom(container) {
+  const arr = [];
+  container.querySelectorAll('.avocat-block').forEach(b => {
+    const a = {};
+    b.querySelectorAll('[data-f]').forEach(el => { a[el.dataset.f] = el.value; });
+    if (a.nom || a.tel) arr.push(a);
+  });
+  return arr;
+}
+
+function collectData() {
+  const d = {};
+  ['raqm_qadiya','folder_url','client_nom','client_id_num','client_mustafid','client_sifa',
+   'adverse_nom','adverse_id_num','adverse_sifa','adverse_adresse','adverse_tel','adverse_email',
+   'avocat_nom','avocat_adresse','avocat_tel','avocat_email'].forEach(f => {
+    const el = document.getElementById(f); if (el) d[f] = el.value;
+  });
+  // منوبون إضافيون
+  const ec = [];
+  document.querySelectorAll('#extra-clients > .adverse-block').forEach(block => {
+    const c = {};
+    block.querySelectorAll(':scope > .field [data-f]').forEach(el => { c[el.dataset.f] = el.value; });
+    if (c.nom || c.id_num) ec.push(c);
+  });
+  if (ec.length) d.extra_clients = ec;
+
+  const ma = collectAvocatsFrom(document.getElementById('extra-avocats-main'));
+  if (ma.length) d.extra_avocats = ma;
+  const ea = [];
+  document.querySelectorAll('#extra-adverses > .adverse-block[data-adverse-id]').forEach(block => {
+    const a = {};
+    block.querySelectorAll(':scope > .field [data-f]').forEach(el => { a[el.dataset.f] = el.value; });
+    const ac = block.querySelector('[id^="extra-avocats-adv-"]');
+    if (ac) { const x = collectAvocatsFrom(ac); if (x.length) a.extra_avocats = x; }
+    if (a.nom || a.tel) ea.push(a);
+  });
+  if (ea.length) d.extra_adverses = ea;
+  return d;
+}
+
+function fillForm(data) {
+  ['raqm_qadiya','folder_url','client_nom','client_id_num','client_mustafid','client_sifa',
+   'adverse_nom','adverse_id_num','adverse_sifa','adverse_adresse','adverse_tel','adverse_email',
+   'avocat_nom','avocat_adresse','avocat_tel','avocat_email'].forEach(f => {
+    const el = document.getElementById(f); if (el && data[f]) el.value = data[f];
+  });
+  if (data.extra_clients) data.extra_clients.forEach(c => addClient(c));
+  if (data.extra_avocats) data.extra_avocats.forEach(a => addAvocatTo('extra-avocats-main', a));
+  if (data.extra_adverses) data.extra_adverses.forEach(a => addAdverse(a));
+  // Afficher le bouton "فتح الملف" si folder_url est rempli
+  if (data.folder_url) document.getElementById('openFolderLink').style.display = 'inline-block';
+}
+
+async function loadClient() {
+  if (!CLIENT_ID) return;
+  document.getElementById('pageTitle').textContent = '📋 تعديل ملف';
+  try {
+    const r = await fetch(`${B}/api/clients/${CLIENT_ID}`);
+    if (r.ok) { fillForm(await r.json()); showStatus('✅ تم تحميل البيانات', false); }
+  } catch(e) { showStatus('❌ خطأ في التحميل', true); }
+  loadJalsat();
+}
+
+async function loadJalsat() {
+  if (!CLIENT_ID) return;
+  document.getElementById('newJalsaLink').href = `${AB}/jalsa/new`;
+  try {
+    const r = await fetch(`${B}/api/clients/${CLIENT_ID}/jalsat`);
+    const jalsat = await r.json();
+    if (jalsat.length === 0) return;
+
+    document.getElementById('jalsat-section').style.display = 'block';
+    let h = `<table style="width:100%;border-collapse:collapse;font-size:12px;background:white;border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
+      <thead><tr style="background:#F7F5F1">
+        <th style="padding:6px 8px;text-align:right;font-size:11px;color:#555;border-bottom:1px solid #ddd">الجلسة</th>
+        <th style="padding:6px 8px;text-align:right;font-size:11px;color:#555;border-bottom:1px solid #ddd">الغرض</th>
+        <th style="padding:6px 8px;text-align:right;font-size:11px;color:#555;border-bottom:1px solid #ddd">الجلسة المقبلة</th>
+        <th style="padding:6px 8px;text-align:right;font-size:11px;color:#555;border-bottom:1px solid #ddd">المحكمة</th>
+        <th style="padding:6px 8px;text-align:right;font-size:11px;color:#555;border-bottom:1px solid #ddd"></th>
+      </tr></thead><tbody>`;
+    jalsat.forEach(j => {
+      h += `<tr style="border-bottom:1px solid #eee">
+        <td style="padding:5px 8px">${j.jalsa||''}</td>
+        <td style="padding:5px 8px">${j.gharad||''}</td>
+        <td style="padding:5px 8px">${j.jalsa_moqbila||''}</td>
+        <td style="padding:5px 8px">${j.mahkama||''}</td>
+        <td style="padding:5px 8px"><a href="${AB}/jalsa/${j.id}" target="_blank" style="color:#8e44ad;font-size:11px">✏️</a></td>
+      </tr>`;
+    });
+    h += '</tbody></table>';
+    document.getElementById('jalsatContainer').innerHTML = h;
+  } catch(e) {}
+}
+
+async function saveClient() {
+  showStatus('⏳ جاري الحفظ...', false, 'saving');
+  const data = collectData();
+  try {
+    let r;
+    if (CLIENT_ID) {
+      r = await fetch(`${B}/api/clients/${CLIENT_ID}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    } else {
+      r = await fetch(`${B}/api/clients`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    }
+    if (r.ok) {
+      const s = await r.json();
+      if (!CLIENT_ID) window.location.href = `${B}/client/${s.id}`;
+      else showStatus('✅ تم الحفظ بنجاح', false);
+    } else showStatus('❌ خطأ في الحفظ', true);
+  } catch(e) { showStatus('❌ خطأ في الاتصال', true); }
+}
+
+function showStatus(msg, isError, type) {
+  const bar = document.getElementById('statusBar');
+  bar.textContent = msg;
+  bar.className = 'status-bar ' + (type || (isError ? 'error' : 'success'));
+  if (type !== 'saving') setTimeout(() => { bar.className = 'status-bar'; }, 4000);
+}
+
+document.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); saveClient(); } });
+
+// Afficher le bouton "فتح الملف" si le lien est rempli
+document.getElementById('folder_url').addEventListener('input', function() {
+  document.getElementById('openFolderLink').style.display = this.value ? 'inline-block' : 'none';
+});
+
+function openFolder() {
+  const url = document.getElementById('folder_url').value;
+  if (url) window.open(url, '_blank');
+}
+
+loadClient();
+</script>
+<script src="/cabinet-stats/badges.js" defer></script>
+
+<!-- ENTETE-FIXE : titre et barres d'outils fixes sous la barre des apps -->
+<style>
+  .entete-fixe{position:sticky;top:var(--haut-nav,40px);z-index:9000;
+    background:rgba(244,241,236,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    box-shadow:0 6px 18px -12px rgba(60,50,40,.35)}
+  .entete-fixe > *{margin-top:0!important;margin-bottom:0!important}
+  .entete-fixe .header,.entete-fixe .app-header{padding-top:10px!important;padding-bottom:10px!important}
+  .entete-fixe .toolbar,.entete-fixe .global-toolbar,.entete-fixe .filters{padding-top:8px!important;padding-bottom:8px!important}
+  .entete-fixe .year-nav{padding-top:6px!important;padding-bottom:6px!important}
+  tr.day-header,.month-block,[id]{scroll-margin-top:calc(var(--haut-nav,40px) + var(--haut-entete,0px) + 12px)}
+  @media (max-height:620px){.entete-fixe{position:static}}
+  @media print{.entete-fixe{position:static;box-shadow:none;background:#fff}}
+</style>
+<script>
+(function(){
+  var CLASSES = ['header','app-header','toolbar','global-toolbar','year-nav','filters'];
+  function estEntete(el){
+    if (!el || !el.classList) return false;
+    for (var i = 0; i < CLASSES.length; i++) if (el.classList.contains(CLASSES[i])) return true;
+    return false;
+  }
+  function hauteurs(){
+    var n = document.querySelector('body > .topnav'), e = document.querySelector('.entete-fixe');
+    var r = document.documentElement.style;
+    r.setProperty('--haut-nav', (n ? n.offsetHeight : 0) + 'px');
+    r.setProperty('--haut-entete', (e ? e.offsetHeight : 0) + 'px');
+  }
+  function monter(){
+    var nav = document.querySelector('body > .topnav');
+    var bs = getComputedStyle(document.body);
+    /* page deja en mise en page fixe (corps sans defilement) : rien a faire */
+    if (bs.overflowY === 'hidden' || bs.overflow === 'hidden') nav = null;
+    if (nav && !document.querySelector('.entete-fixe')) {
+      var groupe = [], el = nav.nextElementSibling;
+      while (el && (el.tagName === 'SCRIPT' || el.tagName === 'STYLE')) el = el.nextElementSibling;
+      while (estEntete(el)) { groupe.push(el); el = el.nextElementSibling; }
+      if (groupe.length) {
+        var w = document.createElement('div');
+        w.className = 'entete-fixe';
+        groupe[0].parentNode.insertBefore(w, groupe[0]);
+        groupe.forEach(function(g){ w.appendChild(g); });
+      }
+    }
+    hauteurs();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', monter); else monter();
+  window.addEventListener('load', hauteurs);
+  window.addEventListener('resize', hauteurs);
+})();
+</script>
+</body>
+</html>

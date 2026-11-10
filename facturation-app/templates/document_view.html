@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}{{ DOC_TYPES.get(doc.type,{}).get('label','Document') }} {{ doc.numero }}{% endblock %}
+{% block extra_style %}
+<style>
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .info-box { background:var(--blue-lighter); border-radius:8px; padding:14px 18px; }
+  .info-box h3 { font-size:13px; color:var(--blue-2); font-weight:700; margin-bottom:10px; border-bottom:1px solid var(--border); padding-bottom:6px; }
+  .info-line { display:flex; gap:8px; margin-bottom:5px; font-size:13px; }
+  .info-label { font-weight:600; color:var(--text-2); min-width:100px; }
+  .lignes-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .lignes-table th { background:var(--blue-2); color:#fff; padding:8px 12px; text-align:left; }
+  .lignes-table td { padding:8px 12px; border-bottom:1px solid #EFECE6; vertical-align:middle; }
+  .total-section { display:flex; justify-content:flex-end; margin-top:16px; }
+  .total-box { background:var(--blue-lighter); border:1px solid var(--border); border-radius:8px; padding:14px 20px; min-width:280px; }
+  .total-row { display:flex; justify-content:space-between; padding:5px 0; font-size:13px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+  .total-row:last-child { border:none; font-weight:700; font-size:15px; color:var(--blue-2); margin-top:4px; padding-top:8px; border-top:2px solid var(--blue-2); }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set dt = DOC_TYPES.get(doc.type, {}) %}
+<!-- Actions bar -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <h2 style="font-size:18px;color:var(--blue-3)">{{ dt.icon }} {{ dt.label }} {{ doc.numero }}</h2>
+    <span class="badge badge-{{ doc.statut }}">{{ STATUTS.get(doc.statut,{}).get('icon','') }} {{ STATUTS.get(doc.statut,{}).get('label','') }}</span>
+    {% if doc.verrouille %}<span class="badge" style="background:#fff3cd;color:#856404">🔒 Verrouillé</span>{% endif %}
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a href="{{ BASE }}/documents/{{ doc.id }}/pdf" target="_blank" class="btn btn-secondary">🖨️ PDF</a>
+
+    {% if doc.type == 'devis' %}
+      <a href="{{ BASE }}/documents/{{ doc.id }}/edit" class="btn btn-info">✏️ Modifier</a>
+      <form method="POST" action="{{ BASE }}/documents/{{ doc.id }}/convert" style="display:inline"
+            onsubmit="return confirm('Convertir en Facture ?')">
+        <button type="submit" class="btn btn-success">🧾 → Facture</button>
+      </form>
+      <form method="POST" action="{{ BASE }}/documents/{{ doc.id }}/delete" style="display:inline"
+            onsubmit="return confirm('Supprimer définitivement ?')">
+        <button type="submit" class="btn btn-danger">🗑️</button>
+      </form>
+    {% endif %}
+
+    {% if doc.type == 'facture' %}
+      {% if not doc.verrouille %}
+      <a href="{{ BASE }}/documents/{{ doc.id }}/edit" class="btn btn-info">✏️ Modifier</a>
+      {% endif %}
+      <form method="POST" action="{{ BASE }}/documents/{{ doc.id }}/avoir" style="display:inline"
+            onsubmit="return confirm('Transférer en avoir ?')">
+        <button type="submit" class="btn btn-warning">↩️ Transférer en avoir</button>
+      </form>
+      <form method="POST" action="{{ BASE }}/documents/{{ doc.id }}/statut" style="display:inline">
+        <select name="statut" onchange="this.form.submit()" style="padding:7px 10px;border-radius:7px;border:1px solid var(--border);font-size:13px;font-family:inherit">
+          {% for k,v in STATUTS.items() %}
+          <option value="{{ k }}" {% if k==doc.statut %}selected{% endif %}>{{ v.icon }} {{ v.label }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      <form method="POST" action="{{ BASE }}/documents/{{ doc.id }}/verrouiller" style="display:inline">
+        {% if doc.verrouille %}
+          <input type="hidden" name="verrouille" value="0">
+          <button type="submit" class="btn btn-warning">🔓 Déverrouiller</button>
+        {% else %}
+          <input type="hidden" name="verrouille" value="1">
+          <button type="submit" class="btn btn-secondary"
+                  onclick="return confirm('Verrouiller ? Le document ne pourra plus être modifié ni supprimé.')">🔒 Verrouiller</button>
+        {% endif %}
+      </form>
+      {% if not doc.verrouille %}
+      <form method="POST" action="{{ BASE }}/documents/{{ doc.id }}/delete" style="display:inline"
+            onsubmit="return confirm('Supprimer définitivement ?')">
+        <button type="submit" class="btn btn-danger">🗑️</button>
+      </form>
+      {% endif %}
+    {% endif %}
+
+    {% if doc.type == 'avoir' %}
+      <a href="{{ BASE }}/documents/{{ doc.id }}/edit" class="btn btn-info">✏️ Modifier</a>
+      <form method="POST" action="{{ BASE }}/documents/{{ doc.id }}/delete" style="display:inline"
+            onsubmit="return confirm('Supprimer définitivement ?')">
+        <button type="submit" class="btn btn-danger">🗑️</button>
+      </form>
+    {% endif %}</div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <!-- Info cabinet + client -->
+    <div class="info-grid" style="margin-bottom:20px">
+      <div class="info-box">
+        <h3>🏢 {{ cabinet.raison_sociale or 'Cabinet' }}</h3>
+        {% if cabinet.matricule_fiscal %}<div class="info-line"><span class="info-label">MF :</span> {{ cabinet.matricule_fiscal }}</div>{% endif %}
+        {% if cabinet.adresse %}<div class="info-line"><span class="info-label">Adresse :</span> {{ cabinet.adresse }}</div>{% endif %}
+        {% if cabinet.tel %}<div class="info-line"><span class="info-label">Tél :</span> {{ cabinet.tel }}</div>{% endif %}
+        {% if cabinet.email %}<div class="info-line"><span class="info-label">Email :</span> {{ cabinet.email }}</div>{% endif %}
+      </div>
+      <div class="info-box">
+        <h3>👥 {{ doc.client_nom or '—' }}</h3>
+        {% if doc.client_mf %}<div class="info-line"><span class="info-label">MF :</span> {{ doc.client_mf }}</div>{% endif %}
+        {% if doc.client_adresse %}<div class="info-line"><span class="info-label">Adresse :</span> {{ doc.client_adresse }}</div>{% endif %}
+        {% if doc.client_tel %}<div class="info-line"><span class="info-label">Tél :</span> {{ doc.client_tel }}</div>{% endif %}
+        {% if doc.client_email %}<div class="info-line"><span class="info-label">Email :</span> {{ doc.client_email }}</div>{% endif %}
+      </div>
+    </div>
+    <!-- Dates -->
+    <div style="display:flex;gap:20px;margin-bottom:20px;flex-wrap:wrap">
+      <div class="info-line"><span class="info-label">Date :</span> <strong>{{ doc.date_doc | date_fr }}</strong></div>
+      {% if doc.date_echeance %}<div class="info-line"><span class="info-label">Échéance :</span> <strong>{{ doc.date_echeance | date_fr }}</strong></div>{% endif %}
+      <div class="info-line"><span class="info-label">Exercice :</span> {{ doc.exercice }}</div>
+    </div>
+    {% if doc.notes %}<div style="background:#fffbf0;border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--text-2)">📝 {{ doc.notes }}</div>{% endif %}
+
+    <!-- Lignes -->
+    <div style="overflow-x:auto;margin-bottom:16px">
+      <table class="lignes-table">
+        <thead><tr>
+          <th>Description</th>
+          <th style="text-align:right">Qté</th>
+          <th style="text-align:right">P.U. HT</th>
+          <th style="text-align:right">Remise</th>
+          <th style="text-align:right">TVA</th>
+          <th style="text-align:right">Total HT</th>
+          <th style="text-align:right">Total TTC</th>
+        </tr></thead>
+        <tbody>
+          {% for l in totaux.lignes %}
+          {% set ht = l.quantite * l.prix_unitaire * (1 - l.remise/100) %}
+          {% set ttc = ht * (1 + l.tva/100) %}
+          <tr>
+            <td>{{ l.description }}</td>
+            <td style="text-align:right">{{ l.quantite }}</td>
+            <td style="text-align:right">{{ "%.3f"|format(l.prix_unitaire) }}</td>
+            <td style="text-align:right">{% if l.remise %}{{ l.remise }}%{% else %}—{% endif %}</td>
+            <td style="text-align:right">{{ l.tva|int }}%</td>
+            <td style="text-align:right;font-weight:600">{{ "%.3f"|format(ht) }}</td>
+            <td style="text-align:right;font-weight:600;color:var(--blue-2)">{{ "%.3f"|format(ttc) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Totaux -->
+    <div class="total-section">
+      <div class="total-box">
+        <div class="total-row"><span>Total HT</span><span>{{ "%.3f"|format(totaux.ht) }} TND</span></div>
+        <div class="total-row"><span>TVA</span><span>{{ "%.3f"|format(totaux.tva) }} TND</span></div>
+        <div class="total-row"><span>TTC</span><span>{{ "%.3f"|format(totaux.ttc) }} TND</span></div>
+        {% if totaux.timbre %}<div class="total-row"><span>Timbre fiscal</span><span>{{ "%.3f"|format(totaux.timbre) }} TND</span></div>{% endif %}
+        <div class="total-row"><span>Net à payer</span><span>{{ "%.3f"|format(totaux.net) }} TND</span></div>
+      </div>
+    </div>
+
+    <!-- Montant en lettres -->
+    {% if totaux.net_lettres %}
+    <div style="background:#F3F1EC;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px">
+      <span style="font-size:11px;color:var(--text-2);font-weight:600">Arrêté à la somme de : </span>
+      <span style="font-size:13px;font-weight:700;color:var(--blue-3);text-transform:capitalize">{{ totaux.net_lettres }}</span>
+    </div>
+    {% endif %}
+    {% if cabinet.rib %}<div style="margin-top:8px;font-size:12px;color:var(--text-2)">🏦 {{ cabinet.rib }}</div>{% endif %}
+    {% if cabinet.mention_legale %}<div style="margin-top:8px;font-size:11px;color:var(--text-2);border-top:1px solid var(--border);padding-top:8px">{{ cabinet.mention_legale }}</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

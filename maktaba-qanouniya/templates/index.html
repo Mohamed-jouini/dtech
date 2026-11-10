@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}المكتبة القانونية{% endblock %}
+{% block body_class %}page-index{% endblock %}
+
+{% block extra_style %}
+<style>
+  html { height: 100%; }
+  body.page-index { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+  body.page-index .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--white); padding: 6px; border-radius: 10px; box-shadow: var(--shadow); flex-shrink: 0; }
+  .tab-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 7px; cursor: pointer; font-size: 15px; font-weight: 700; font-family: inherit; transition: all .18s; background: transparent; color: var(--text-2); text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .tab-btn:hover { background: var(--blue-lighter); color: var(--blue-2); }
+  .tab-btn.active { background: var(--blue-1); color: var(--white); box-shadow: 0 2px 8px rgba(62,127,209,.35); }
+  .tab-badge { background: rgba(255,255,255,.3); border-radius: 20px; padding: 1px 8px; font-size: 12px; }
+  .tab-btn:not(.active) .tab-badge { background: var(--blue-light); color: var(--blue-2); }
+
+  /* SEARCH BAR */
+  .search-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-shrink: 0; }
+  .search-input {
+    flex: 1; padding: 9px 14px; border: 1px solid var(--border);
+    border-radius: var(--radius); font-family: inherit; font-size: 13px;
+    direction: rtl; outline: none; background: var(--white);
+  }
+  .search-input:focus { border-color: var(--blue-1); box-shadow: 0 0 0 3px rgba(62,127,209,.15); }
+
+  /* GRID ARTICLES */
+  .table-wrap { background: var(--white); border-radius: 10px; box-shadow: var(--shadow); display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+  .table-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--blue-lighter); flex-shrink: 0; }
+  .table-header h2 { font-size: 15px; color: var(--blue-3); font-weight: 700; }
+  .table-scroll { overflow-x: auto; overflow-y: auto; flex: 1; min-height: 0; direction: ltr; }
+  #mainTable { direction: rtl; width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--blue-2); color: var(--white); padding: 10px 12px; font-weight: 600; font-size: 12px; text-align: right; white-space: nowrap; position: sticky; top: 0; z-index: 10; }
+  tbody tr { border-bottom: 2px solid #D5CFC5; transition: background .12s; }
+  tbody tr:hover { background: var(--blue-lighter); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 10px 12px; vertical-align: middle; }
+
+  /* OCR badge */
+  .ocr-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+  .ocr-done    { background: #d4edda; color: #155724; }
+  .ocr-pending { background: #fff3cd; color: #856404; }
+  .ocr-error   { background: #f8d7da; color: #721c24; }
+
+  /* Instance badge */
+  .inst-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; background: var(--blue-light); color: var(--blue-3); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-2); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .cell-text { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- TABS -->
+<div class="tabs">
+  {% for cat in CATEGORIES %}
+  <a href="{{ BASE }}/?cat={{ cat }}"
+     class="tab-btn {% if active_cat == cat %}active{% endif %}">
+    {% if cat == 'مدني' %}⚖️{% else %}🔒{% endif %} {{ cat }}
+    <span class="tab-badge">{{ counts.get(cat, 0) }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- SEARCH -->
+<form method="GET" action="{{ BASE }}/" class="search-bar">
+  <input type="hidden" name="cat" value="{{ active_cat }}">
+  <input type="search" name="q" class="search-input"
+         value="{{ q }}" placeholder="🔍 بحث في العنوان أو المحتوى (OCR)…">
+  <button type="submit" class="btn btn-primary">بحث</button>
+  {% if q %}<a href="{{ BASE }}/?cat={{ active_cat }}" class="btn btn-secondary">✕ مسح</a>{% endif %}
+</form>
+
+<!-- TABLE -->
+<div class="table-wrap">
+  <div class="table-header">
+    <h2>{% if active_cat == 'مدني' %}⚖️ المواد المدنية{% else %}🔒 المواد الجزائية{% endif %}
+        {% if q %}<span style="color:var(--orange);font-size:13px"> — نتائج: "{{ q }}"</span>{% endif %}
+    </h2>
+    <span style="font-size:12px;color:var(--text-2)">{{ rows|length }} مقال</span>
+  </div>
+  <div class="table-scroll">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th>العنوان</th>
+          <th>الجهة</th>
+          <th>العدد</th>
+          <th>التاريخ</th>
+          <th>OCR</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows %}
+          {% for art in rows %}
+          <tr>
+            <td>
+              <a href="{{ BASE }}/view/{{ art.id }}" style="color:var(--blue-2);font-weight:600;text-decoration:none">
+                📄 <span class="cell-text" style="display:inline;max-width:none">{{ art.titre }}</span>
+              </a>
+            </td>
+            <td>{% if art.instance %}<span class="inst-badge">{{ art.instance }}</span>{% else %}—{% endif %}</td>
+            <td>{{ art.adad or '—' }}</td>
+            <td style="white-space:nowrap">{{ art.date_doc or '—' }}</td>
+            <td>
+              {% if art.ocr_done == 1 %}
+                <span class="ocr-badge ocr-done">✅ مكتمل</span>
+              {% elif art.ocr_done == 2 %}
+                <span class="ocr-badge ocr-error">❌ خطأ</span>
+              {% else %}
+                <span class="ocr-badge ocr-pending" id="ocr-{{ art.id }}">⏳ جارٍ</span>
+              {% endif %}
+            </td>
+            <td style="white-space:nowrap">
+              <a href="{{ BASE }}/view/{{ art.id }}" class="btn btn-info" title="عرض">👁️</a>
+              <a href="{{ BASE }}/edit/{{ art.id }}" class="btn btn-edit" title="تعديل">✏️</a>
+              <form method="POST" action="{{ BASE }}/delete/{{ art.id }}" style="display:inline"
+                    onsubmit="return confirm('هل تريد حذف هذا المقال؟')">
+                <button type="submit" class="btn btn-danger" title="حذف">🗑️</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <div class="icon">📚</div>
+                <p>{% if q %}لا توجد نتائج للبحث "{{ q }}"{% else %}لا توجد مقالات في هذا القسم{% endif %}</p>
+                <a href="{{ BASE }}/upload" class="btn btn-primary" style="margin-top:12px">＋ رفع أول مقال</a>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+const BASE = "{{ BASE }}";
+// Vérifier le statut OCR des articles en cours
+const pending = document.querySelectorAll('[id^="ocr-"]');
+if (pending.length) {
+  setInterval(async () => {
+    for (const el of pending) {
+      const id = el.id.split('-')[1];
+      try {
+        const r = await fetch(`${BASE}/api/ocr-status/${id}`);
+        const d = await r.json();
+        if (d.status === 'done') {
+          el.className = 'ocr-badge ocr-done';
+          el.textContent = '✅ مكتمل';
+        } else if (d.status === 'error') {
+          el.className = 'ocr-badge ocr-error';
+          el.textContent = '❌ خطأ';
+        }
+      } catch(e) {}
+    }
+  }, 5000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Modifier' if doc else 'Nouveau' }} {{ DOC_TYPES.get(doc_type,{}).get('label','Document') }}{% endblock %}
+{% block extra_style %}
+<style>
+  .lignes-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .lignes-table th { background:var(--blue-2); color:#fff; padding:8px 10px; text-align:left; }
+  .lignes-table td { padding:5px 6px; border-bottom:1px solid #EFECE6; vertical-align:middle; }
+  .lignes-table input, .lignes-table select { padding:6px 8px; width:100%; border:1px solid var(--border); border-radius:5px; font-size:12px; font-family:inherit; }
+  .lignes-table input:focus, .lignes-table select:focus { border-color:var(--blue-1); outline:none; }
+  .total-box { background:var(--blue-lighter); border:1px solid var(--border); border-radius:8px; padding:14px 18px; min-width:260px; }
+  .total-row { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+  .total-row:last-child { border-bottom:none; font-weight:700; font-size:15px; color:var(--blue-2); }
+  .btn-add-ligne { background:var(--blue-light); color:var(--blue-2); border:1px dashed var(--blue-1); border-radius:6px; padding:6px 14px; cursor:pointer; font-size:12px; font-family:inherit; font-weight:600; }
+  .btn-del-ligne { background:#fde8e8; color:var(--red); border:1px solid #f5c6c6; border-radius:5px; padding:4px 8px; cursor:pointer; font-size:12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set dt = DOC_TYPES.get(doc_type, {}) %}
+<form method="POST" id="docForm">
+<input type="hidden" name="type" value="{{ doc_type }}">
+
+<div style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start">
+
+<!-- COLONNE PRINCIPALE -->
+<div>
+  <!-- En-tête document -->
+  <div class="card">
+    <div class="card-header">
+      <h2>{{ dt.icon }} {{ 'Modifier' if doc else 'Nouveau' }} {{ dt.label }}</h2>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label data-fr="Numéro" data-ar="الرقم">Numéro</label>
+          <input type="text" name="numero" value="{{ numero }}" readonly style="background:#F1EEE9;color:#8C867E;cursor:not-allowed" title="Numéro généré automatiquement">
+        </div>
+        <div class="form-group">
+          <label data-fr="Exercice" data-ar="السنة المحاسبية">Exercice</label>
+          <input type="text" name="exercice" value="{{ exercice }}" maxlength="4" pattern="\d{4}">
+        </div>
+        <div class="form-group">
+          <label data-fr="Client" data-ar="الحريف">Client</label>
+          <select name="client_id" id="clientSelect" onchange="fillClient()">
+            <option value="">— Sélectionner —</option>
+            {% for c in clients %}
+            <option value="{{ c.id }}" {% if doc and doc.client_id==c.id %}selected{% endif %}
+                    data-nom="{{ c.raison_sociale }}" data-mf="{{ c.matricule_fiscal }}"
+                    data-adr="{{ c.adresse }}" data-tel="{{ c.tel }}">
+              {{ c.raison_sociale }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if doc_type == 'facture' %}
+        <div class="form-group">
+          <label data-fr="Statut" data-ar="الحالة">Statut</label>
+          <select name="statut">
+            {% for k,v in STATUTS.items() %}
+            <option value="{{ k }}" {% if doc and doc.statut==k %}selected{% elif not doc and k=='en_cours' %}selected{% endif %}>
+              {{ v.icon }} {{ v.label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% else %}
+        <input type="hidden" name="statut" value="en_cours">
+        {% endif %}
+        <div class="form-group">
+          <label data-fr="Date du document" data-ar="تاريخ الوثيقة">Date du document</label>
+          <input type="date" name="date_doc" value="{{ doc.date_doc if doc else today }}" style="direction:ltr">
+        </div>
+        <div class="form-group">
+          <label data-fr="Date d'échéance" data-ar="تاريخ الاستحقاق">Date d'échéance</label>
+          <input type="date" name="date_echeance" value="{{ doc.date_echeance if doc else '' }}" style="direction:ltr">
+        </div>
+        <div class="form-group">
+          {% if doc_type == 'facture' or (doc and doc.type == 'facture') %}
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label" style="font-weight:600">🌐 Langue de la facture</label>
+            <div style="display:flex;gap:12px;margin-top:6px">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 16px;border-radius:8px;border:2px solid #DDD7CD;background:#F7F5F1;font-weight:600;transition:all .15s" id="lbl-fr">
+                <input type="radio" name="langue" value="fr"
+                  {% if not doc or doc.langue == 'fr' %}checked{% endif %}
+                  onchange="document.getElementById('lbl-fr').style.borderColor=this.checked?'#1E4C86':'#DDD7CD';document.getElementById('lbl-ar').style.borderColor=!this.checked?'#1E4C86':'#DDD7CD'">
+                🇫🇷 Français
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 16px;border-radius:8px;border:2px solid #DDD7CD;background:#F7F5F1;font-weight:600;transition:all .15s;direction:rtl" id="lbl-ar">
+                <input type="radio" name="langue" value="ar"
+                  {% if doc and doc.langue == 'ar' %}checked{% endif %}
+                  onchange="document.getElementById('lbl-ar').style.borderColor=this.checked?'#1E4C86':'#DDD7CD';document.getElementById('lbl-fr').style.borderColor=!this.checked?'#1E4C86':'#DDD7CD'">
+                🇹🇳 عربي
+              </label>
+            </div>
+          </div>
+          {% endif %}
+                    <label>
+            <input type="checkbox" name="avec_timbre" {% if doc and doc.avec_timbre %}checked{% endif %} style="width:auto;margin-right:6px">
+            Timbre fiscal ({{ cabinet.timbre }} TND)
+          </label>
+        </div>
+        <div class="form-group full">
+          <label>Notes / Objet</label>
+          <textarea name="notes" rows="2">{{ doc.notes if doc else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGNES -->
+  <div class="card">
+    <div class="card-header"><h2>📝 Lignes de prestation</h2></div>
+    <div class="card-body" style="padding:12px">
+      <div style="overflow-x:auto">
+        
+          {# ── CHAMPS ARABES (visibles uniquement si langue=ar) ── #}
+          <div id="section-champs-ar" style="display:none;margin-bottom:16px;direction:rtl">
+            <div style="background:#F3F1EC;border:1px solid #DDD7CD;border-radius:8px;padding:14px 18px;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                {% set champs = [
+                  ('ar_aladd',       'الضد'),
+                  ('ar_mawdou',      'الموضوع'),
+                  ('ar_aqd',         'عقد عدد'),
+                  ('ar_mahkama',     'المحكمة'),
+                  ('ar_qadiya_adad', 'قضية عدد'),
+                  ('ar_tarikh_houkm','تاريخ الحكم'),
+                ] %}
+                {% for name, label in champs %}
+                <tr style="border-bottom:1px solid rgba(30,76,134,.1)">
+                  <td style="padding:7px 6px;text-align:center;width:36px">
+                    <input type="checkbox" name="{{ name }}_show" value="1"
+                           {% if champs_ar_dict.get(name.replace('ar_', '') + '_show') %}checked{% endif %}
+                           style="width:16px;height:16px;accent-color:#1E4C86;cursor:pointer"
+                           title="أظهر في PDF">
+                  </td>
+                  <td style="padding:7px 12px 7px 6px;font-weight:700;color:#1E4C86;white-space:nowrap;width:130px">
+                    {{ label }} :
+                  </td>
+                  <td style="padding:7px 6px">
+                    <input type="text" name="{{ name }}"
+                           value="{{ champs_ar_dict.get(name.replace('ar_', ''), '') }}"
+                           style="width:100%;border:none;border-bottom:1px solid #DDD7CD;background:transparent;padding:3px 6px;font-size:13px;font-family:inherit;direction:rtl;outline:none"
+                           placeholder="...">
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+            </div>
+          </div>
+          
+          <table class="lignes-table" id="lignesTable">
+          <thead>
+            <tr>
+              <th style="width:40%" data-fr="Description" data-ar="الأتعاب">Description</th>
+              <th style="width:8%" data-fr="Qté" data-ar="الكمية">Qté</th>
+              <th style="width:12%" data-fr="Prix HT" data-ar="السعر">Prix HT</th>
+              <th style="width:8%" data-fr="Remise %" data-ar="تخفيض">Remise %</th>
+              <th style="width:8%" data-fr="TVA %" data-ar="TVA">TVA %</th>
+              <th style="width:12%" data-fr="Total HT" data-ar="HT المجموع">Total HT</th>
+              <th style="width:12%" data-fr="Total TTC" data-ar="TTC المجموع">Total TTC</th>
+              <th style="width:5%"></th>
+            </tr>
+          </thead>
+          <tbody id="lignesBody">
+            {% set existing = lignes if lignes else [] %}
+            {% for i in range(existing|length if existing else 1) %}
+            {% set l = existing[i] if existing else {} %}
+            <tr class="ligne-row" data-idx="{{ i }}">
+              <td><input type="text" name="desc_{{ i }}" value="{{ l.description if l else '' }}" placeholder="Description de la prestation..." oninput="calcLine({{ i }})"></td>
+              <td><input type="number" name="qte_{{ i }}" value="{{ l.quantite if l else 1 }}" min="0" step="0.01" oninput="calcLine({{ i }})"></td>
+              <td><input type="number" name="pu_{{ i }}" value="{{ l.prix_unitaire if l else 0 }}" min="0" step="0.001" oninput="calcLine({{ i }})"></td>
+              <td><input type="number" name="remise_{{ i }}" value="{{ l.remise if l else 0 }}" min="0" max="100" step="0.01" oninput="calcLine({{ i }})"></td>
+              <td>
+                <select name="tva_{{ i }}" onchange="calcLine({{ i }})">
+                  {% for t in TVA_OPTIONS %}
+                  <option value="{{ t }}" {% if l and l.tva==t %}selected{% elif not l and t==19 %}selected{% endif %}>{{ t }}%</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td><input type="text" id="ht_{{ i }}" readonly style="background:#F7F5F1;font-weight:600" value="{{ '%.3f'|format(l.quantite*(l.prix_unitaire or 0)*(1-(l.remise or 0)/100)) if l else '0.000' }}"></td>
+              <td><input type="text" id="ttc_{{ i }}" readonly style="background:#F7F5F1;font-weight:600;color:var(--blue-2)" value="0.000"></td>
+              <td><button type="button" class="btn-del-ligne" onclick="delLigne(this)">✕</button></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px">
+        <button type="button" class="btn-add-ligne" onclick="addLigne()">＋ Ajouter une ligne</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOTAUX + ACTIONS -->
+<div style="min-width:280px">
+  <div class="card" style="position:sticky;top:70px">
+    <div class="card-header"><h2>💰 Totaux</h2></div>
+    <div class="card-body">
+      <div class="total-box">
+        <div class="total-row"><span>Total HT</span><span id="tot-ht">0.000 TND</span></div>
+        <div class="total-row"><span>TVA</span><span id="tot-tva">0.000 TND</span></div>
+        <div class="total-row"><span>TTC</span><span id="tot-ttc">0.000 TND</span></div>
+        <div class="total-row" id="timbre-row" style="display:none"><span>Timbre</span><span id="tot-timbre">0.000 TND</span></div>
+        <div class="total-row"><span>Net à payer</span><span id="tot-net">0.000 TND</span></div>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
+        <button type="submit" class="btn btn-success" style="width:100%">💾 Enregistrer</button>
+        <a href="{{ BASE }}/documents{% if doc %}?type={{ doc_type }}{% endif %}" class="btn btn-secondary" style="width:100%;text-align:center">↩ Annuler</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</form>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+const TIMBRE = {{ cabinet.timbre or 1.000 }};
+let lineCount = {{ lignes|length if lignes else 1 }};
+
+function calcLine(idx) {
+  const desc = document.querySelector(`[name="desc_${idx}"]`);
+  const qte  = parseFloat(document.querySelector(`[name="qte_${idx}"]`)?.value) || 0;
+  const pu   = parseFloat(document.querySelector(`[name="pu_${idx}"]`)?.value) || 0;
+  const rem  = parseFloat(document.querySelector(`[name="remise_${idx}"]`)?.value) || 0;
+  const tva  = parseFloat(document.querySelector(`[name="tva_${idx}"]`)?.value) || 0;
+  const ht   = qte * pu * (1 - rem / 100);
+  const ttc  = ht * (1 + tva / 100);
+  const htEl  = document.getElementById(`ht_${idx}`);
+  const ttcEl = document.getElementById(`ttc_${idx}`);
+  if (htEl)  htEl.value  = ht.toFixed(3);
+  if (ttcEl) ttcEl.value = ttc.toFixed(3);
+  calcTotals();
+}
+
+function calcTotals() {
+  let totHT = 0, totTVA = 0;
+  document.querySelectorAll('.ligne-row').forEach(row => {
+    const idx = row.dataset.idx;
+    const qte = parseFloat(document.querySelector(`[name="qte_${idx}"]`)?.value) || 0;
+    const pu  = parseFloat(document.querySelector(`[name="pu_${idx}"]`)?.value) || 0;
+    const rem = parseFloat(document.querySelector(`[name="remise_${idx}"]`)?.value) || 0;
+    const tva = parseFloat(document.querySelector(`[name="tva_${idx}"]`)?.value) || 0;
+    const ht  = qte * pu * (1 - rem / 100);
+    totHT  += ht;
+    totTVA += ht * tva / 100;
+  });
+  const totTTC  = totHT + totTVA;
+  const withTimbre = document.querySelector('[name="avec_timbre"]')?.checked;
+  const timbre = withTimbre ? TIMBRE : 0;
+  const net = totTTC + timbre;
+  document.getElementById('tot-ht').textContent  = totHT.toFixed(3) + ' TND';
+  document.getElementById('tot-tva').textContent = totTVA.toFixed(3) + ' TND';
+  document.getElementById('tot-ttc').textContent = totTTC.toFixed(3) + ' TND';
+  document.getElementById('tot-net').textContent = net.toFixed(3) + ' TND';
+  const timbreRow = document.getElementById('timbre-row');
+  if (withTimbre) {
+    timbreRow.style.display = 'flex';
+    document.getElementById('tot-timbre').textContent = timbre.toFixed(3) + ' TND';
+  } else {
+    timbreRow.style.display = 'none';
+  }
+}
+
+function addLigne() {
+  const idx = lineCount++;
+  const tbody = document.getElementById('lignesBody');
+  const row = document.createElement('tr');
+  row.className = 'ligne-row';
+  row.dataset.idx = idx;
+  row.innerHTML = `
+    <td><input type="text" name="desc_${idx}" placeholder="Description..." oninput="calcLine(${idx})"></td>
+    <td><input type="number" name="qte_${idx}" value="1" min="0" step="0.01" oninput="calcLine(${idx})"></td>
+    <td><input type="number" name="pu_${idx}" value="0" min="0" step="0.001" oninput="calcLine(${idx})"></td>
+    <td><input type="number" name="remise_${idx}" value="0" min="0" max="100" step="0.01" oninput="calcLine(${idx})"></td>
+    <td>
+      <select name="tva_${idx}" onchange="calcLine(${idx})">
+        ${[0,7,13,19].map(t=>`<option value="${t}"${t===19?' selected':''}>${t}%</option>`).join('')}
+      </select>
+    </td>
+    <td><input type="text" id="ht_${idx}" readonly style="background:#F7F5F1;font-weight:600" value="0.000"></td>
+    <td><input type="text" id="ttc_${idx}" readonly style="background:#F7F5F1;font-weight:600;color:var(--blue-2)" value="0.000"></td>
+    <td><button type="button" class="btn-del-ligne" onclick="delLigne(this)">✕</button></td>
+  `;
+  tbody.appendChild(row);
+  row.querySelector('input[type="text"]').focus();
+}
+
+function delLigne(btn) {
+  const row = btn.closest('.ligne-row');
+  if (document.querySelectorAll('.ligne-row').length > 1) {
+    row.remove();
+    calcTotals();
+  }
+}
+
+// Timbre checkbox
+document.querySelector('[name="avec_timbre"]')?.addEventListener('change', calcTotals);
+
+// Init calculs
+document.querySelectorAll('.ligne-row').forEach(row => calcLine(row.dataset.idx));
+
+function fillClient() {
+  const sel = document.getElementById('clientSelect');
+  const opt = sel.selectedOptions[0];
+}
+
+// ─── TRADUCTION FR ↔ AR ─────────────────────────────────────────────────────
+function switchLang(lang) {
+  const isAr = lang === 'ar';
+  document.querySelectorAll('[data-fr][data-ar]').forEach(el => {
+    el.textContent = isAr ? el.dataset.ar : el.dataset.fr;
+  });
+  const form = document.querySelector('form');
+  if (form) {
+    form.style.direction = isAr ? 'rtl' : 'ltr';
+    form.style.fontFamily = isAr ? "'Noto Sans Arabic', Arial, sans-serif" : "inherit";
+  }
+  const btnAjouter = document.querySelector('[onclick="addLigne()"]');
+  if (btnAjouter) btnAjouter.textContent = isAr ? '＋ إضافة سطر' : '＋ Ajouter une ligne';
+  const btnSave = document.querySelector('button[type="submit"]');
+  if (btnSave) btnSave.innerHTML = isAr ? '💾 حفظ' : '💾 Enregistrer';
+  const notes = document.querySelector('[name="notes"]');
+  if (notes) notes.placeholder = isAr ? 'ملاحظات...' : 'Notes, conditions...';
+  const secAr = document.getElementById('section-champs-ar');
+  if (secAr) secAr.style.display = isAr ? 'block' : 'none';
+  ['lbl-fr','lbl-ar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const active = (id === 'lbl-fr' && !isAr) || (id === 'lbl-ar' && isAr);
+      el.style.borderColor = active ? '#1E4C86' : '#DDD7CD';
+      el.style.background  = active ? '#E9F0FA' : '#F7F5F1';
+    }
+  });
+}
+document.querySelectorAll('[name="langue"]').forEach(r => {
+  r.addEventListener('change', () => switchLang(r.value));
+});
+const initLang = document.querySelector('[name="langue"]:checked');
+if (initLang) switchLang(initLang.value);
+
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <h2 style="font-size:18px;color:var(--blue-3)">👥 Clients</h2>
+  <a href="{{ BASE }}/clients/new" class="btn btn-primary">＋ Nouveau Client</a>
+</div>
+<div class="card">
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Raison Sociale</th><th>Matricule Fiscal</th><th>Téléphone</th><th>Email</th><th>Documents</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for c in clients %}
+        <tr>
+          <td><strong>{{ c.raison_sociale }}</strong></td>
+          <td>{{ c.matricule_fiscal or '—' }}</td>
+          <td>{{ c.tel or '—' }}</td>
+          <td>{{ c.email or '—' }}</td>
+          <td style="text-align:center">
+            <span style="background:var(--blue-light);color:var(--blue-2);padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700">{{ c.nb_docs }}</span>
+          </td>
+          <td class="actions">
+            <a href="{{ BASE }}/clients/{{ c.id }}/edit" class="btn btn-info btn-sm">✏️</a>
+            <form method="POST" action="{{ BASE }}/clients/{{ c.id }}/delete" style="display:inline"
+                  onsubmit="return confirm('Supprimer ce client ?')">
+              <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty">Aucun client — <a href="{{ BASE }}/clients/new">Ajouter le premier</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
