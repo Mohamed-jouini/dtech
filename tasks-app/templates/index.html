@@ -115,11 +115,12 @@
   .mt-empty { display:flex; align-items:center; justify-content:center; gap:10px; padding:16px 14px; }
   .mt-empty .e { display:inline; font-size:22px; margin:0; }
   /* pastilles empilées des assignés (tableau) */
-  .pile { display:flex; align-items:center; }
-  .pile .av { width:28px; height:28px; font-size:12px; box-shadow:0 0 0 2px #fff; margin-left:-7px; }
-  .pile .av:last-of-type { margin-left:0; }
-  .pile .av.more { background:#ECE8E1; color:var(--ink2); }
-  .pile .pile-n { margin-right:8px; font-size:12px; font-weight:700; color:var(--ink2); white-space:nowrap; }
+  /* assignés dans le tableau : puces « nom » lisibles (3 maximum + « +N » avec la liste au survol) */
+  .names { display:flex; flex-wrap:wrap; gap:4px; max-width:340px; }
+  .names .nm { display:inline-flex; align-items:center; gap:6px; padding:3px 10px 3px 8px; border-radius:999px; background:#F3F1EC;
+        border:1px solid var(--line); font-size:12px; font-weight:700; color:var(--ink2); white-space:nowrap; line-height:1.4; }
+  .names .nm i { width:9px; height:9px; border-radius:50%; background:var(--a,#8C867E); flex:none; }
+  .names .nm.more { background:#E9F0FA; color:#2C65AE; border-color:rgba(62,127,209,.3); cursor:help; }
   .mt-table td.c-people .people { display:none; }
   .mt-table .t-title { max-width:460px; }
   .mt-table td.c-title { min-width:230px; }
@@ -168,7 +169,7 @@
     .mt-table td.c-title, .mt-table td.c-people, .mt-table td.c-acts { grid-column:1 / -1; }
     .mt-table td.c-acts::before { display:none; }
     .mt-table td.c-empty { display:none!important; }
-    .mt-table td.c-people .pile { display:none; }
+    .mt-table td.c-people .names { display:none; }
     .mt-table td.c-people .people { display:flex; }
     .mt-table .acts { justify-content:flex-start; }
     .mt-table .t-title { max-width:none; }
@@ -327,7 +328,7 @@
               <a class="t-title" href="{{ BASE }}/tache/{{ t.id }}">{{ t.titre }}</a>
               <div class="t-sub">🕐 {{ (t.created_at or '')[:16] }}</div>
             </td>
-            <td class="c-people" data-label="المعيّنون">{% if us %}<div class="pile" title="{{ us|join('، ') }}">{% for u in us[:4] %}<span class="av" style="--a:{{ u|avc }}">{{ u[0] }}</span>{% endfor %}{% if us|length > 4 %}<span class="av more">+{{ us|length - 4 }}</span>{% endif %}<span class="pile-n">{{ us[0] }}{% if us|length > 1 %} +{{ us|length - 1 }}{% endif %}</span></div>{% endif %}<div class="people">{% for u in us %}{{ personne(u) }}{% else %}<span class="chip">بدون تعيين</span>{% endfor %}</div></td>
+            <td class="c-people" data-label="المعيّنون">{% if us %}<div class="names">{% for u in us[:3] %}<span class="nm"><i style="--a:{{ u|avc }}"></i>{{ u }}</span>{% endfor %}{% if us|length > 3 %}<span class="nm more" dir="ltr" title="{{ us[3:]|join('، ') }}">+{{ us|length - 3 }}</span>{% endif %}</div>{% endif %}<div class="people">{% for u in us %}{{ personne(u) }}{% else %}<span class="chip">بدون تعيين</span>{% endfor %}</div></td>
             <td data-label="من">{{ personne(t.cree_par) }}</td>
             <td data-label="الحالة"><span class="pill" style="--c:{{ st.get('color','#8C867E') }}">{{ st.get('icon','') }} {{ st.get('label','') }}</span></td>
             <td data-label="الأولوية"><span class="pill" style="--c:{{ pr.get('color','#8C867E') }}">{{ pr.get('icon','') }} {{ pr.get('label','') }}</span></td>
