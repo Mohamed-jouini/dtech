@@ -224,7 +224,7 @@ img,video,canvas,iframe,svg{max-width:100%}
 /* ---- Barres du haut TOUJOURS fixes, meme dans un cadre bas (iframe Nextcloud ~600px) ----
    L'ancienne regle "max-height:620px => position:static" les faisait defiler avec la page.
    On garde le mode fixe et on compacte les barres quand la hauteur est faible. */
-.entete-fixe{position:sticky!important;max-height:45vh;overflow-y:auto;overflow-x:hidden}
+@media screen{.entete-fixe{position:sticky!important;max-height:45vh;overflow-y:auto;overflow-x:hidden}}
 @media screen and (max-height:760px){
   html body .entete-fixe .header,html body .entete-fixe .app-header{padding-top:6px!important;padding-bottom:6px!important;min-height:0}
   html body .entete-fixe .header h1,html body .entete-fixe .app-header h1{font-size:17px}
@@ -361,6 +361,8 @@ img,video,canvas,iframe,svg{max-width:100%}
    Téléphone (≤ 820px) : tableaux → fiches (via design-v2.js), barres compactes,
    boutons d'enregistrement toujours accessibles.
    ===================================================================== */
+/* IMPRESSION : design limité à l'écran — l'impression garde les styles d'origine de chaque application */
+@media screen{
 :root{
   --d-ink:#2B2A28; --d-ink2:#5C5852; --d-ink3:#8C867E; --d-line:rgba(120,112,102,.18);
   --d-blue:#3E7FD1; --d-blue-d:#2C65AE; --d-red:#C25B4A; --d-green:#2E9E57; --d-amber:#B5862B;
@@ -584,6 +586,8 @@ div.empty::before{content:"📭";display:block;font-size:34px;margin-bottom:8px;
   .month-header .month-icon{width:36px;height:36px}
 }
 /* ===== fin DESIGN v2 ===== */
+
+} /* fin @media screen */
 </style>
 <script id="design-v2-js">
 /* ===== DESIGN v2 (script) =====

@@ -261,7 +261,7 @@ img,video,canvas,iframe,svg{max-width:100%}
 /* ---- Barres du haut TOUJOURS fixes, meme dans un cadre bas (iframe Nextcloud ~600px) ----
    L'ancienne regle "max-height:620px => position:static" les faisait defiler avec la page.
    On garde le mode fixe et on compacte les barres quand la hauteur est faible. */
-.entete-fixe{position:sticky!important;max-height:45vh;overflow-y:auto;overflow-x:hidden}
+@media screen{.entete-fixe{position:sticky!important;max-height:45vh;overflow-y:auto;overflow-x:hidden}}
 @media screen and (max-height:760px){
   html body .entete-fixe .header,html body .entete-fixe .app-header{padding-top:6px!important;padding-bottom:6px!important;min-height:0}
   html body .entete-fixe .header h1,html body .entete-fixe .app-header h1{font-size:17px}
